@@ -28,6 +28,7 @@ public class Env extends Environment {
         
         server = new GatewayServer(this);
         server.start();
+        logger.info("Gateway Server Started at" + server.getAddress() + ":" + server.getListeningPort());
     }
 
     @Override
@@ -39,15 +40,32 @@ public class Env extends Environment {
         return true; // the action was executed with success
     }
 
-    public int getAction(String state) {
+    public void start(String layout) {
+        logger.info("entrato nella funzione start");
+        //logger.info(layout);
+    }
+
+    public void updateState(String player1, String player2, String objects, String bonus_orders, String all_orders, String timestep) {
+        
+        logger.info("entrato nella funzione updatestate");
+
+        logger.info(player1);
+        logger.info(player2);
+        logger.info(objects);
+        logger.info(bonus_orders);
+        logger.info(all_orders);
+        logger.info(timestep);
+    }
+
+    public int getAction() {
         logger.info("entrato nella funzione getaction");
-        logger.info(state);
         Random r = new Random();
         return r.nextInt(6);
     }
 
-    public void reset() {
+    public void reset(String layout) {
         logger.info("entrato nella funzione reset");
+        logger.info(layout);
     }
 
     /** Called before the end of MAS execution */

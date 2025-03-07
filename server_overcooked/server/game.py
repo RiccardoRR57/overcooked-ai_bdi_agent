@@ -19,7 +19,7 @@ from overcooked_ai_py.planning.planners import (
     MotionPlanner,
 )
 
-from py4j.java_gateway import JavaGateway, GatewayParameters
+from py4j.java_gateway import JavaGateway
 
 # Relative path to where all static pre-trained agents are stored on server
 AGENT_DIR = None
@@ -638,7 +638,10 @@ class OvercookedGame(Game):
         self.score = 0
         self.threads = []
         for npc_policy in self.npc_policies:
-            self.npc_policies[npc_policy].reset()
+            if(self.npc_policies[npc_policy].__class__.__name__ == "Riccardo"):
+                self.npc_policies[npc_policy].reset(self.curr_layout)
+            else:
+                self.npc_policies[npc_policy].reset()
             self.npc_state_queues[npc_policy].put(self.state)
             t = Thread(target=self.npc_policy_consumer, args=(npc_policy,))
             self.threads.append(t)
@@ -718,16 +721,13 @@ class OvercookedGame(Game):
 class Riccardo:
 
     def __init__(self):
-
         try:
             # Connect to Java on the host machine
             self.gateway = JavaGateway()
-            self.chef = self.gateway.entry_point
+            self.env = self.gateway.entry_point
         except Exception:
             self.gateway = None
-            self.chef = None
-
-        super(Riccardo, self).__init__()
+            self.env = None
 
     def action(self, state):
         actions = [
@@ -739,17 +739,18 @@ class Riccardo:
             Action.INTERACT,
         ]
 
-        if self.chef is not None:
-            action_idx = self.chef.getAction(str(state))
-            return actions[action_idx], None
+        if self.env is not None:
+            self.env.updateState(str(state.players[0]), str(state.players[1]), str(state.objects), str(state.bonus_orders), str(state.all_orders), str(state.timestep))
+            action_id = self.env.getAction()
+            return actions[action_id], None
         else:
             # Fallback to STAY if connection failed
             return Direction.STAY, None
         
     
-    def reset(self):
-        if self.chef is not None:
-            self.chef.reset()
+    def reset(self, layout):
+        if self.env is not None:
+            self.env.reset(layout)
 
 class OvercookedTutorial(OvercookedGame):
 
