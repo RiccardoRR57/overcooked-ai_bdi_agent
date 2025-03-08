@@ -1,0 +1,62 @@
+{
+    "start_bonus_orders": [
+        {
+            "ingredients": [
+                "onion",
+                "onion",
+                "tomato"
+            ]
+        },
+        {
+            "ingredients": [
+                "tomato",
+                "tomato",
+                "onion"
+            ]
+        }
+    ],
+    "start_all_orders": [
+        {
+            "ingredients": [
+                "onion"
+            ]
+        },
+        {
+            "ingredients": [
+                "tomato"
+            ]
+        },
+        {
+            "ingredients": [
+                "onion",
+                "onion",
+                "tomato"
+            ]
+        },
+        {
+            "ingredients": [
+                "tomato",
+                "tomato",
+                "onion"
+            ]
+        },
+        {
+            "ingredients": [
+                "tomato",
+                "tomato",
+                "tomato"
+            ]
+        },
+        {
+            "ingredients": [
+                "onion",
+                "onion"
+            ]
+        }
+    ],
+    "grid": "XXXXXSSSXXXXX\n                XXTSSS SSSOXX\n                P 1       2 P\n                XXDSSSSSSSDXX",
+    "onion_time": 15,
+    "onion_value": 21,
+    "tomato_value": 13,
+    "tomato_time": 7
+}

@@ -25,6 +25,7 @@ repositories {
 dependencies {
     implementation 'io.github.jason-lang:jason-interpreter:3.3.0'
     implementation 'net.sf.py4j:py4j:0.10.9.3'
+    implementation 'org.json:json:20250107'
 
     // to use locally installed jars:
     implementation fileTree(dir: 'lib', include: '*.jar')
