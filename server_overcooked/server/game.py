@@ -740,7 +740,8 @@ class Riccardo:
         ]
 
         if self.env is not None:
-            self.env.updateState(str(state.players[0]), str(state.players[1]), str(state.objects), str(state.bonus_orders), str(state.all_orders), str(state.timestep))
+
+            self.env.updateState(str(state.players[0]), str(state.players[1]), str(state.objects), str(state.bonus_orders), str(state.all_orders), state.timestep)
             action_id = self.env.getAction()
             return actions[action_id], None
         else:
@@ -750,7 +751,14 @@ class Riccardo:
     
     def reset(self, layout):
         if self.env is not None:
-            self.env.reset(layout)
+            world = OvercookedGridworld.from_layout_name(layout)
+
+            terrain ="".join([tile for row in world.terrain_mtx for tile in row])
+            
+            all_orders = [d["ingredients"] for d in world.start_all_orders if "ingredients" in d]
+            bonus_orders = [d["ingredients"] for d in world.start_bonus_orders if "ingredients" in d]
+            
+            self.env.reset(world.height, world.width, terrain, str(bonus_orders), str(all_orders))
 
 class OvercookedTutorial(OvercookedGame):
 

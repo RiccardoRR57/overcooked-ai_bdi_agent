@@ -1,9 +1,4 @@
-import java.util.ArrayList;
 import java.util.List;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 public class Order {
     private List<String> ingredients;
@@ -17,20 +12,7 @@ public class Order {
         this.ingredients = ingredients;
     }
 
-    /**
-     * Constructs an Order object from a JSONObject.
-     * 
-     * @param orderJson The JSONObject containing order data.
-     * @throws JSONException If the JSON is malformed.
-     */
-    public Order(JSONObject orderJson) throws JSONException {
-        this.ingredients = new ArrayList<>();
-        JSONArray ingredientsArray = orderJson.getJSONArray("ingredients");
-        
-        for (int i = 0; i < ingredientsArray.length(); i++) {
-            ingredients.add(ingredientsArray.getString(i));
-        }
-    }
+    
 
     /**
      * Returns the list of ingredients required for this order.
