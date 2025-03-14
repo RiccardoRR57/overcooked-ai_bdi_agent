@@ -19,12 +19,12 @@ import py4j.GatewayServer;
 public class Env extends Environment {
 
     private static final Logger logger = Logger.getLogger("chef."+Env.class.getName());
-    private GatewayServer server;
+    private GatewayServer server;  // For Python-Java communication
 
-    private Grid grid;
-    private List<Order> bonus_orders;
-    private List<Order> all_orders;
-    private int timestep;
+    private Grid grid;             // Game world representation
+    private List<Order> bonus_orders;  // Special orders with extra points
+    private List<Order> all_orders;    // All available orders
+    private int timestep;          // Current game tick counter
 
     
     /**
@@ -74,12 +74,15 @@ public class Env extends Environment {
      */
     public void updateState(String player1, String player2, String objects, String bonus_orders, String all_orders, int timestep) {
 
-        setBonusOrders(bonus_orders);
-        setOrders(all_orders);
-        this.timestep=timestep;
-        grid.setObjects(objects);
-        grid.setPlayer(player1, 1);
-        grid.setPlayer(player2, 2);
+        setBonusOrders(bonus_orders);  // Update special orders
+        setOrders(all_orders);         // Update regular orders
+        this.timestep=timestep;        // Update time
+        grid.setObjects(objects);      // Update game objects
+        //TODO: update oven status
+        grid.setPlayer(player1, 1);    // Update player 1 position
+        grid.setPlayer(player2, 2);    // Update player 2 position
+        
+        logger.info(grid.toString());
     }
 
     /**
@@ -103,9 +106,9 @@ public class Env extends Environment {
      * @param all_orders String representation of all available orders
      */
     public void reset(int height, int width, String terrain, String bonus_orders, String all_orders) {
-        this.grid = new Grid(height, width, terrain);
-        setBonusOrders(bonus_orders);
-        setOrders(all_orders);
+        this.grid = new Grid(height, width, terrain);  // Initialize new game world
+        setBonusOrders(bonus_orders);                  // Set initial special orders
+        setOrders(all_orders);                         // Set initial regular orders
     }
 
     /**
@@ -124,14 +127,14 @@ public class Env extends Environment {
      * @return Parsed list of ingredient lists
      */
     private static List<List<String>> parseIngredientString(String input) {
-        // 1. Convert parentheses to square brackets
+        // Convert Python tuple format to JSON format
         input = input.replace('(', '[')
                      .replace(')', ']');
 
-        // 2. Convert single quotes to double quotes
+        // Convert Python string quotes to JSON string quotes
         input = input.replace("'", "\"");
 
-        // 3. Parse the resulting string as JSON
+        // Parse using Jackson JSON library
         ObjectMapper mapper = new ObjectMapper();
         try {
             return mapper.readValue(input, new TypeReference<List<List<String>>>(){});
@@ -149,10 +152,10 @@ public class Env extends Environment {
      */
     private void setOrders(String input) {
         all_orders = new ArrayList<>();
-        List<List<String>> ingrList = parseIngredientString(input);
+        List<List<String>> ingrList = parseIngredientString(input);  // Parse ingredients from string
         for (List<String> ingredients : ingrList) {
-            Order o = new Order(ingredients);
-            all_orders.add(o);
+            Order o = new Order(ingredients);  // Create order for each ingredient list
+            all_orders.add(o);                 // Add to orders collection
         }
     }
     

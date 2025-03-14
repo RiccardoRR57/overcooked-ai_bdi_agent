@@ -2,12 +2,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Grid {
-    private final int width;
-    private final int height;
-    private final char[][] grid;
-    private final char[][] objects;
-    private Player player1;
-    private Player player2;
+    private final int width;          // Grid width in cells
+    private final int height;         // Grid height in cells
+    private final char[][] grid;      // Static terrain representation
+    private final char[][] objects;   // Dynamic game objects
+    private Player player1;           // First player representation
+    private Player player2;           // Second player representation
 
     /**
      * Constructs a grid for the Overcooked AI game.
@@ -26,6 +26,7 @@ public class Grid {
             throw new IllegalArgumentException("Layout string length must match grid dimensions");
         }
         
+        // Convert linear string to 2D grid
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 int index = y * width + x;
@@ -67,7 +68,11 @@ public class Grid {
         return grid[y][x];
     }
 
+    /**
+     * Clears all objects from the grid
+     */
     public void resetObjects() {
+        // Reset object layer to empty
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 objects[y][x] = 0;
@@ -75,14 +80,25 @@ public class Grid {
         }
     }
 
+    /**
+     * Updates the player's state based on information from game engine
+     * 
+     * @param player String representation of player state
+     * @param playerNum Player number (1 or 2)
+     */
     public void setPlayer(String player, int playerNum) {
         switch (playerNum) {
-            case 1 -> player1 = new Player(player);
-            case 2 -> player2 = new Player(player);
+            case 1 -> player1 = new Player(player);  // Update player 1
+            case 2 -> player2 = new Player(player);  // Update player 2
             default -> throw new IllegalArgumentException("Invalid player number");
         }
     }
 
+    /**
+     * Places objects on the grid based on string representation
+     * 
+     * @param objectsString String containing object locations and types
+     */
     public void setObjects(String objectsString) {
         // Remove outer brackets/braces
         objectsString = objectsString.replaceAll("^\\(\\{|\\}\\)$", "");
@@ -92,9 +108,9 @@ public class Grid {
         Matcher matcher = pattern.matcher(objectsString);
         
         while (matcher.find()) {
-            int x = Integer.parseInt(matcher.group(1));
-            int y = Integer.parseInt(matcher.group(2));
-            String objectType = matcher.group(3).toLowerCase();
+            int x = Integer.parseInt(matcher.group(1));  // Object x position
+            int y = Integer.parseInt(matcher.group(2));  // Object y position
+            String objectType = matcher.group(3).toLowerCase();  // Object type
             
             // Get first letter of object type as lowercase
             char objectChar = objectType.charAt(0);
@@ -104,6 +120,11 @@ public class Grid {
         }
     }
 
+    /**
+     * Creates string representation of the current grid state
+     * 
+     * @return String visualization of grid with players and objects
+     */
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -111,13 +132,13 @@ public class Grid {
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 if (objects[y][x] != 0) {
-                    sb.append(objects[y][x]);
+                    sb.append(objects[y][x]);  // Show objects first
                 } else if (player1 != null && player1.x == x && player1.y == y) {
-                    sb.append('1');
+                    sb.append('1');  // Show player 1
                 } else if (player2 != null && player2.x == x && player2.y == y) {
-                    sb.append('2');
+                    sb.append('2');  // Show player 2
                 } else{
-                    sb.append(grid[y][x]);
+                    sb.append(grid[y][x]);  // Show terrain
                 }
             }
             sb.append("\n");
@@ -125,45 +146,75 @@ public class Grid {
         return sb.toString();
     }
 
+    /**
+     * Inner class representing a player in the game
+     */
     private class Player {
-        private int x;
-        private int y;
-        private int dx;
-        private int dy;
-        private char holding;
+        private int x;       // X position
+        private int y;       // Y position
+        private int dx;      // X facing direction
+        private int dy;      // Y facing direction
+        private char holding;  // Currently held item
 
+        /**
+         * Creates a player from string representation
+         * 
+         * @param player String containing player state information
+         */
         public Player(String player) {
+            // Default initialization
+            this.x = 0;
+            this.y = 0;
+            this.dx = 0;
+            this.dy = 0;
+            this.holding = 0;
+            
+            // Early return if no player data
+            if (player == null || player.isEmpty()) {
+                return;
+            }
+            
             // Pattern to match player position, facing direction and held object
             // Format: (x, y) facing (dx, dy) holding [object@(x, y) | None]
             Pattern pattern = Pattern.compile("\\((\\d+),\\s*(\\d+)\\)\\s*facing\\s*\\(([-]?\\d+),\\s*([-]?\\d+)\\)\\s*holding\\s*(\\w+@\\(\\d+,\\s*\\d+\\)|None)");
+            Matcher matcher = pattern.matcher(player);
             
-            // Parse player 1
-            if (player != null && !player.isEmpty()) {
-                Matcher matcher = pattern.matcher(player);
-                if (matcher.find()) {
-                    this.x = Integer.parseInt(matcher.group(1));
-                    this.y = Integer.parseInt(matcher.group(2));
-                    this.dx = Integer.parseInt(matcher.group(3));
-                    this.dy = Integer.parseInt(matcher.group(4));
-                    
-                    // Parse the held object
-                    String heldObject = matcher.group(5);
-                    if (heldObject.equals("None")) {
-                        this.holding = 0; // Not holding anything
-                    } else {
-                        // Extract the object type from the string (format: objectType@(x,y))
-                        if (heldObject.startsWith("onion")) {
-                            this.holding = 'o';
-                        } else if (heldObject.startsWith("tomato")) {
-                            this.holding = 't';
-                        } else if (heldObject.startsWith("dish")) {
-                            this.holding = 'd';
-                        } else {
-                            // Default case - unknown object
-                            this.holding = 0;
-                        }
-                    }
-                }
+            // If pattern doesn't match, keep default values
+            if (!matcher.find()) {
+                return;
+            }
+            
+            // Extract position and direction
+            this.x = Integer.parseInt(matcher.group(1));  // Position X
+            this.y = Integer.parseInt(matcher.group(2));  // Position Y
+            this.dx = Integer.parseInt(matcher.group(3)); // Direction X
+            this.dy = Integer.parseInt(matcher.group(4)); // Direction Y
+            
+            // Parse held object
+            parseHeldObject(matcher.group(5));
+        }
+        
+        /**
+         * Helper method to parse the held object string
+         * 
+         * @param heldObject String representation of held object
+         */
+        private void parseHeldObject(String heldObject) {
+            // Not holding anything
+            if ("None".equals(heldObject)) {
+                this.holding = 0;
+                return;
+            }
+            
+            // Determine object type from string
+            if (heldObject.startsWith("onion")) {
+                this.holding = 'o';  // Holding onion
+            } else if (heldObject.startsWith("tomato")) {
+                this.holding = 't';  // Holding tomato
+            } else if (heldObject.startsWith("dish")) {
+                this.holding = 'd';  // Holding dish
+            } else {
+                this.holding = 0;    // Unknown object
             }
         }
     }
