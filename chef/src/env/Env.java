@@ -27,7 +27,12 @@ public class Env extends Environment {
     private int timestep;
 
     
-    /** Called before the MAS execution with the args informed in .mas2j */
+    /**
+     * Called before the MAS execution with the args informed in .mas2j
+     * Initializes the environment and starts the Python-Java gateway server
+     * 
+     * @param args Arguments passed from the .mas2j file
+     */
     @Override
     public void init(String[] args) {
         super.init(args);
@@ -41,6 +46,13 @@ public class Env extends Environment {
         server.start();
     }
 
+    /**
+     * Executes agent actions in the environment
+     * 
+     * @param agName The agent's name performing the action
+     * @param action The structure representing the action to be executed
+     * @return true if the action was executed successfully
+     */
     @Override
     public boolean executeAction(String agName, Structure action) {
         logger.info("executing: "+action+", but not implemented!");
@@ -50,50 +62,67 @@ public class Env extends Environment {
         return true; // the action was executed with success
     }
 
+    /**
+     * Updates the environment state with new game information
+     * 
+     * @param player1 String representation of player 1's state
+     * @param player2 String representation of player 2's state
+     * @param objects String representation of objects in the environment
+     * @param bonus_orders String representation of bonus orders
+     * @param all_orders String representation of all available orders
+     * @param timestep Current time step in the game
+     */
     public void updateState(String player1, String player2, String objects, String bonus_orders, String all_orders, int timestep) {
-        
-        logger.info("entrato nella funzione updatestate");
 
         setBonusOrders(bonus_orders);
         setOrders(all_orders);
         this.timestep=timestep;
-        
-        // Parse objects and update grid
-        if (grid != null) {
-            parseObjects(objects);
-        }
-
-        logger.info(player1);
-        logger.info(player2);
-        logger.info(objects);
+        grid.setObjects(objects);
+        grid.setPlayer(player1, 1);
+        grid.setPlayer(player2, 2);
     }
 
+    /**
+     * Returns a random action for the agent to perform
+     * 
+     * @return An integer representing a random action (0-5)
+     */
     public int getAction() {
         logger.info("entrato nella funzione getaction");
         Random r = new Random();
         return r.nextInt(6);
     }
 
+    /**
+     * Resets the environment to a new state
+     * 
+     * @param height Grid height
+     * @param width Grid width
+     * @param terrain String representation of the terrain
+     * @param bonus_orders String representation of bonus orders
+     * @param all_orders String representation of all available orders
+     */
     public void reset(int height, int width, String terrain, String bonus_orders, String all_orders) {
-
-        logger.info("entrato nella funzione reset");
-        logger.info(String.valueOf(height));
-        logger.info(String.valueOf(width));
-        logger.info(terrain);
-        logger.info(bonus_orders);
-        logger.info(all_orders);
-
         this.grid = new Grid(height, width, terrain);
         setBonusOrders(bonus_orders);
         setOrders(all_orders);
     }
 
-    /** Called before the end of MAS execution */
+    /**
+     * Called before the end of MAS execution
+     * Cleans up resources before environment shutdown
+     */
     @Override
     public void stop() {
         super.stop();
     }
 
+    /**
+     * Parses a string representation of ingredients into a list of ingredient lists
+     * 
+     * @param input String representation of ingredients in Python format
+     * @return Parsed list of ingredient lists
+     */
     private static List<List<String>> parseIngredientString(String input) {
         // 1. Convert parentheses to square brackets
         input = input.replace('(', '[')
@@ -113,6 +142,11 @@ public class Env extends Environment {
         }
     }
 
+    /**
+     * Parses and sets the regular orders from string input
+     * 
+     * @param input String representation of orders
+     */
     private void setOrders(String input) {
         all_orders = new ArrayList<>();
         List<List<String>> ingrList = parseIngredientString(input);
@@ -122,38 +156,17 @@ public class Env extends Environment {
         }
     }
     
+    /**
+     * Parses and sets the bonus orders from string input
+     * 
+     * @param input String representation of bonus orders
+     */
     private void setBonusOrders(String input) {
         bonus_orders = new ArrayList<>();
         List<List<String>> ingrList = parseIngredientString(input);
         for (List<String> ingredients : ingrList) {
             Order o = new Order(ingredients);
             bonus_orders.add(o);
-        }
-    }
-
-    /**
-     * Parse objects string and add them to the grid as lowercase letters
-     * Example input: "({(8, 4): dish@(8, 4), (9, 4): tomato@(9, 4), (2, 0): tomato@(2, 0), (11, 2): onion@(11, 2), (3, 4): dish@(3, 4)}"
-     */
-    private void parseObjects(String input) {
-        // Remove outer brackets/braces
-        input = input.replaceAll("^\\(\\{|\\}\\)$", "");
-        
-        // Pattern to match (x, y): object@(x, y)
-        Pattern pattern = Pattern.compile("\\((\\d+),\\s*(\\d+)\\):\\s*(\\w+)@\\(\\d+,\\s*\\d+\\)");
-        Matcher matcher = pattern.matcher(input);
-        
-        while (matcher.find()) {
-            int x = Integer.parseInt(matcher.group(1));
-            int y = Integer.parseInt(matcher.group(2));
-            String objectType = matcher.group(3).toLowerCase();
-            
-            // Get first letter of object type as lowercase
-            char objectChar = objectType.charAt(0);
-            
-            // Add object to grid (as lowercase letter)
-            grid.setObject(x, y, objectChar);
-            logger.info("Added object " + objectType + " (" + objectChar + ") at position (" + x + ", " + y + ")");
         }
     }
 }
