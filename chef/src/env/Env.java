@@ -2,8 +2,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -13,7 +11,6 @@ import jason.asSyntax.ASSyntax;
 import jason.asSyntax.Structure;
 import jason.asSyntax.parser.ParseException;
 import jason.environment.Environment;
-import jason.functions.time;
 import py4j.GatewayServer;
 
 public class Env extends Environment {
@@ -81,8 +78,8 @@ public class Env extends Environment {
         //TODO: update oven status
         grid.setPlayer(player1, 1);    // Update player 1 position
         grid.setPlayer(player2, 2);    // Update player 2 position
-        
-        logger.info(grid.toString());
+
+        logger.info(objects);
     }
 
     /**
@@ -133,6 +130,9 @@ public class Env extends Environment {
 
         // Convert Python string quotes to JSON string quotes
         input = input.replace("'", "\"");
+        
+        // Remove trailing commas in arrays which are invalid in JSON
+        input = input.replaceAll(",\\s*]", "]");
 
         // Parse using Jackson JSON library
         ObjectMapper mapper = new ObjectMapper();
