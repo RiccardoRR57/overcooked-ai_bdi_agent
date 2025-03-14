@@ -1,7 +1,7 @@
 import java.util.List;
 
 public class Order {
-    private List<String> ingredients;
+    private final List<String> ingredients;
 
     /**
      * Constructs an Order object from a list of ingredients.
@@ -12,8 +12,6 @@ public class Order {
         this.ingredients = ingredients;
     }
 
-    
-
     /**
      * Returns the list of ingredients required for this order.
      *
@@ -21,16 +19,6 @@ public class Order {
      */
     public List<String> getIngredients() {
         return ingredients;
-    }
-    
-    /**
-     * Checks if this order contains the specified ingredient.
-     *
-     * @param ingredient The ingredient to check.
-     * @return true if the order contains the ingredient, false otherwise.
-     */
-    public boolean containsIngredient(String ingredient) {
-        return ingredients.contains(ingredient);
     }
     
     /**
@@ -47,15 +35,6 @@ public class Order {
             }
         }
         return count;
-    }
-    
-    /**
-     * Returns the total number of ingredients in this order.
-     *
-     * @return The total number of ingredients.
-     */
-    public int getTotalIngredientCount() {
-        return ingredients.size();
     }
     
     @Override

@@ -1,7 +1,9 @@
-
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -19,11 +21,9 @@ public class Env extends Environment {
     private static final Logger logger = Logger.getLogger("chef."+Env.class.getName());
     private GatewayServer server;
 
-    private String grid;
-    private int grid_height;
-    private int grid_width;
-    private List<List<String>> bonus_orders;
-    private List<List<String>> all_orders;
+    private Grid grid;
+    private List<Order> bonus_orders;
+    private List<Order> all_orders;
     private int timestep;
 
     
@@ -39,7 +39,6 @@ public class Env extends Environment {
         
         server = new GatewayServer(this);
         server.start();
-        logger.info("Gateway Server Started at" + server.getAddress() + ":" + server.getListeningPort());
     }
 
     @Override
@@ -55,9 +54,14 @@ public class Env extends Environment {
         
         logger.info("entrato nella funzione updatestate");
 
-        this.bonus_orders=parseString(bonus_orders);
-        this.all_orders=parseString(all_orders);
+        setBonusOrders(bonus_orders);
+        setOrders(all_orders);
         this.timestep=timestep;
+        
+        // Parse objects and update grid
+        if (grid != null) {
+            parseObjects(objects);
+        }
 
         logger.info(player1);
         logger.info(player2);
@@ -79,11 +83,9 @@ public class Env extends Environment {
         logger.info(bonus_orders);
         logger.info(all_orders);
 
-        this.grid_height = height;
-        this.grid_width = width;
-        this.grid = terrain;
-        this.all_orders=parseString(all_orders);
-        this.bonus_orders=parseString(bonus_orders);
+        this.grid = new Grid(height, width, terrain);
+        setBonusOrders(bonus_orders);
+        setOrders(all_orders);
     }
 
     /** Called before the end of MAS execution */
@@ -92,7 +94,7 @@ public class Env extends Environment {
         super.stop();
     }
 
-    public static List<List<String>> parseString(String input) {
+    private static List<List<String>> parseIngredientString(String input) {
         // 1. Convert parentheses to square brackets
         input = input.replace('(', '[')
                      .replace(')', ']');
@@ -108,6 +110,50 @@ public class Env extends Environment {
             logger.severe("Error parsing order string: ");
             logger.severe(ex.getMessage());
             return null;
+        }
+    }
+
+    private void setOrders(String input) {
+        all_orders = new ArrayList<>();
+        List<List<String>> ingrList = parseIngredientString(input);
+        for (List<String> ingredients : ingrList) {
+            Order o = new Order(ingredients);
+            all_orders.add(o);
+        }
+    }
+    
+    private void setBonusOrders(String input) {
+        bonus_orders = new ArrayList<>();
+        List<List<String>> ingrList = parseIngredientString(input);
+        for (List<String> ingredients : ingrList) {
+            Order o = new Order(ingredients);
+            bonus_orders.add(o);
+        }
+    }
+
+    /**
+     * Parse objects string and add them to the grid as lowercase letters
+     * Example input: "({(8, 4): dish@(8, 4), (9, 4): tomato@(9, 4), (2, 0): tomato@(2, 0), (11, 2): onion@(11, 2), (3, 4): dish@(3, 4)}"
+     */
+    private void parseObjects(String input) {
+        // Remove outer brackets/braces
+        input = input.replaceAll("^\\(\\{|\\}\\)$", "");
+        
+        // Pattern to match (x, y): object@(x, y)
+        Pattern pattern = Pattern.compile("\\((\\d+),\\s*(\\d+)\\):\\s*(\\w+)@\\(\\d+,\\s*\\d+\\)");
+        Matcher matcher = pattern.matcher(input);
+        
+        while (matcher.find()) {
+            int x = Integer.parseInt(matcher.group(1));
+            int y = Integer.parseInt(matcher.group(2));
+            String objectType = matcher.group(3).toLowerCase();
+            
+            // Get first letter of object type as lowercase
+            char objectChar = objectType.charAt(0);
+            
+            // Add object to grid (as lowercase letter)
+            grid.setObject(x, y, objectChar);
+            logger.info("Added object " + objectType + " (" + objectChar + ") at position (" + x + ", " + y + ")");
         }
     }
 }
