@@ -1,5 +1,8 @@
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 public class Grid {
     private final int width;          // Grid width in cells
@@ -8,6 +11,7 @@ public class Grid {
     private final char[][] objects;   // Dynamic game objects
     private Player player1;           // First player representation
     private Player player2;           // Second player representation
+    private List<Pot> pots;           // List of pots
 
     /**
      * Constructs a grid for the Overcooked AI game.
@@ -21,6 +25,7 @@ public class Grid {
         this.height = height;
         this.grid = new char[height][width];
         this.objects = new char[height][width];
+        this.pots = new ArrayList<>();
         
         if (layout.length() != width * height) {
             throw new IllegalArgumentException("Layout string length must match grid dimensions");
@@ -100,23 +105,52 @@ public class Grid {
      * @param objectsString String containing object locations and types
      */
     public void setObjects(String objectsString) {
+        // Clear existing objects and pots
+        resetObjects();
+        this.pots.clear();
+        
+        // Early return if no object data
+        if (objectsString == null || objectsString.isEmpty()) {
+            return;
+        }
+        
         // Remove outer brackets/braces
-        objectsString = objectsString.replaceAll("^\\(\\{|\\}\\)$", "");
+        objectsString = objectsString.replaceAll("^\\{|\\}$", "").trim();
         
-        // Pattern to match (x, y): object@(x, y)
-        Pattern pattern = Pattern.compile("\\((\\d+),\\s*(\\d+)\\):\\s*(\\w+)@\\(\\d+,\\s*\\d+\\)");
-        Matcher matcher = pattern.matcher(objectsString);
+        // Split the string by commas followed by newlines or just newlines
+        String[] objectEntries = objectsString.split(",\\s*\\n|\\n");
         
-        while (matcher.find()) {
-            int x = Integer.parseInt(matcher.group(1));  // Object x position
-            int y = Integer.parseInt(matcher.group(2));  // Object y position
-            String objectType = matcher.group(3).toLowerCase();  // Object type
+        for (String entry : objectEntries) {
+            entry = entry.trim();
+            if (entry.isEmpty()) continue;
             
-            // Get first letter of object type as lowercase
-            char objectChar = objectType.charAt(0);
-            
-            // Add object to grid (as lowercase letter)
-            this.objects[y][x] = objectChar;
+            // Check if this entry is a pot (contains "Ingredients:" and "Cooking Tick:")
+            if (entry.contains("Ingredients:") && entry.contains("Cooking Tick:")) {
+                // Create a new pot from the entry
+                Pot pot = new Pot(entry);
+                
+                // Add pot to the list
+                this.pots.add(pot);
+                
+                // Mark pot location on the objects grid with 'p'
+                this.objects[pot.y][pot.x] = 'P';
+            } else {
+                // Pattern to match (x, y): object@(x, y)
+                Pattern pattern = Pattern.compile("\\((\\d+),\\s*(\\d+)\\):\\s*(\\w+)@\\(\\d+,\\s*\\d+\\)");
+                Matcher matcher = pattern.matcher(entry);
+                
+                if (matcher.find()) {
+                    int x = Integer.parseInt(matcher.group(1));  // Object x position
+                    int y = Integer.parseInt(matcher.group(2));  // Object y position
+                    String objectType = matcher.group(3).toLowerCase();  // Object type
+                    
+                    // Get first letter of object type as lowercase
+                    char objectChar = objectType.charAt(0);
+                    
+                    // Add object to grid (as lowercase letter)
+                    this.objects[y][x] = objectChar;
+                }
+            }
         }
     }
 
@@ -128,7 +162,9 @@ public class Grid {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append('\n');
+        
+        // Grid visualization
+        sb.append("\nGrid state:\n");
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 if (objects[y][x] != 0) {
@@ -143,6 +179,26 @@ public class Grid {
             }
             sb.append("\n");
         }
+        
+        // Player state
+        sb.append("\nPlayers:\n");
+        if (player1 != null) {
+            sb.append("Player 1: ").append(player1.toString()).append("\n");
+        }
+        if (player2 != null) {
+            sb.append("Player 2: ").append(player2.toString()).append("\n");
+        }
+        
+        // Pot state
+        sb.append("\nPots:\n");
+        if (pots.isEmpty()) {
+            sb.append("No active pots\n");
+        } else {
+            for (int i = 0; i < pots.size(); i++) {
+                sb.append("Pot ").append(i + 1).append(": ").append(pots.get(i).toString()).append("\n");
+            }
+        }
+        
         return sb.toString();
     }
 
@@ -216,6 +272,133 @@ public class Grid {
             } else {
                 this.holding = 0;    // Unknown object
             }
+        }
+        
+        /**
+         * Creates string representation of the player
+         * 
+         * @return String player state information
+         */
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append("(").append(x).append(", ").append(y).append(")");
+            sb.append(" facing (").append(dx).append(", ").append(dy).append(")");
+            
+            // Show what player is holding
+            sb.append(" holding ");
+            switch (holding) {
+                case 'o' -> sb.append("onion");
+                case 't' -> sb.append("tomato");
+                case 'd' -> sb.append("dish");
+                default -> sb.append("nothing");
+            }
+            
+            return sb.toString();
+        }
+    }
+
+    private class Pot {
+        private int x;  // X position
+        private int y;  // Y position
+        private int cookingTick;  // Timer for cooking
+        private List<Character> ingredients;  // Ingredients in pot
+
+        /**
+         * Creates a pot from string representation
+         * 
+         * @param pot String containing pot state information
+         */
+        public Pot(String pot) {
+            // Default initialization
+            this.x = 0;
+            this.y = 0;
+            this.cookingTick = -1;
+            this.ingredients = new ArrayList<>();
+            
+            // Early return if no pot data
+            if (pot == null || pot.isEmpty()) {
+                return;
+            }
+            
+            try {
+                // Extract position (x, y)
+                Pattern posPattern = Pattern.compile("\\((\\d+),\\s*(\\d+)\\)");
+                Matcher posMatcher = posPattern.matcher(pot);
+                if (posMatcher.find()) {
+                    this.x = Integer.parseInt(posMatcher.group(1));
+                    this.y = Integer.parseInt(posMatcher.group(2));
+                }
+                
+                // Extract ingredient list
+                Pattern ingredPattern = Pattern.compile("Ingredients:\\s*\\[(.*?)\\]");
+                Matcher ingredMatcher = ingredPattern.matcher(pot);
+                if (ingredMatcher.find()) {
+                    String ingredientsStr = ingredMatcher.group(1);
+                    Pattern ingredItemPattern = Pattern.compile("(\\w+)@");
+                    Matcher ingredItemMatcher = ingredItemPattern.matcher(ingredientsStr);
+                    while (ingredItemMatcher.find()) {
+                        // Get first letter of ingredient
+                        this.ingredients.add(ingredItemMatcher.group(1).charAt(0));
+                    }
+                }
+                
+                // Extract cooking tick
+                Pattern tickPattern = Pattern.compile("Cooking Tick:\\s*(-?\\d+)");
+                Matcher tickMatcher = tickPattern.matcher(pot);
+                if (tickMatcher.find()) {
+                    this.cookingTick = Integer.parseInt(tickMatcher.group(1));
+                }
+            } catch (NumberFormatException e) {
+                // Handle number parsing errors
+                System.err.println("Error parsing numeric values: " + e.getMessage());
+            } catch (IndexOutOfBoundsException | IllegalStateException e) {
+                // Handle regex group access errors
+                System.err.println("Error accessing regex groups: " + e.getMessage());
+            } catch (PatternSyntaxException e) {
+                // Handle regex pattern errors
+                System.err.println("Error in regex pattern: " + e.getMessage());
+            }
+        }
+        
+        /**
+         * Creates string representation of the pot
+         * 
+         * @return String pot state information
+         */
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append("(").append(x).append(", ").append(y).append(")");
+            
+            // Show ingredients
+            sb.append(" contains [");
+            if (ingredients.isEmpty()) {
+                sb.append("empty");
+            } else {
+                for (int i = 0; i < ingredients.size(); i++) {
+                    char ingredient = ingredients.get(i);
+                    switch (ingredient) {
+                        case 'o' -> sb.append("onion");
+                        case 't' -> sb.append("tomato");
+                        default -> sb.append("unknown");
+                    }
+                    
+                    if (i < ingredients.size() - 1) {
+                        sb.append(", ");
+                    }
+                }
+            }
+            sb.append("]");
+            
+            // Show cooking status
+            if (cookingTick == -1) {
+                sb.append(" not cooking");
+            } else {
+                sb.append(" cooking: ").append(cookingTick).append(" ticks remaining");
+            }
+            
+            return sb.toString();
         }
     }
 }

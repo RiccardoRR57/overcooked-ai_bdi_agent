@@ -75,11 +75,10 @@ public class Env extends Environment {
         setOrders(all_orders);         // Update regular orders
         this.timestep=timestep;        // Update time
         grid.setObjects(objects);      // Update game objects
-        //TODO: update oven status
         grid.setPlayer(player1, 1);    // Update player 1 position
         grid.setPlayer(player2, 2);    // Update player 2 position
 
-        logger.info(objects);
+        logger.info(grid.toString());  // Log game state
     }
 
     /**
