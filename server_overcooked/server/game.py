@@ -638,7 +638,7 @@ class OvercookedGame(Game):
         self.score = 0
         self.threads = []
         for npc_policy in self.npc_policies:
-            if(self.npc_policies[npc_policy].__class__.__name__ == "Riccardo"):
+            if(self.npc_policies[npc_policy].__class__.__name__ == "BdiAgent"):
                 self.npc_policies[npc_policy].reset(self.curr_layout)
             else:
                 self.npc_policies[npc_policy].reset()
@@ -677,8 +677,8 @@ class OvercookedGame(Game):
         return obj_dict
 
     def get_policy(self, npc_id, idx=0):
-        if npc_id.lower().startswith("riccardo"):
-            return Riccardo()
+        if npc_id.lower().startswith("bdi_agent"):
+            return BdiAgent()
         elif npc_id.lower().startswith("rllib"):
             try:
                 # Loading rllib agents requires additional helpers
@@ -718,7 +718,7 @@ class OvercookedGame(Game):
         return data
 
 
-class Riccardo:
+class BdiAgent:
 
     def __init__(self):
         try:

@@ -349,7 +349,7 @@ def get_agent_names():
         d
         for d in os.listdir(AGENT_DIR)
         if os.path.isdir(os.path.join(AGENT_DIR, d))
-    ] + ["riccardo"]
+    ] + ["bdi_agent"]
 
 
 ######################
