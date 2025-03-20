@@ -15,7 +15,7 @@ import py4j.GatewayServer;
 
 public class Env extends Environment {
 
-    private static final Logger logger = Logger.getLogger("chef."+Env.class.getName());
+    private static final Logger logger = Logger.getLogger("bdi_agent."+Env.class.getName());
     private GatewayServer server;  // For Python-Java communication
 
     private Grid grid;             // Game world representation
@@ -81,15 +81,8 @@ public class Env extends Environment {
         logger.info(grid.toString());  // Log game state
     }
 
-    /**
-     * Returns a random action for the agent to perform
-     * 
-     * @return An integer representing a random action (0-5)
-     */
     public int getAction() {
-        logger.info("entrato nella funzione getaction");
-        Random r = new Random();
-        return r.nextInt(6);
+        return 6;
     }
 
     /**

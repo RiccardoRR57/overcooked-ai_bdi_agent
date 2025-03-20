@@ -11,7 +11,7 @@ public class Grid {
     private final char[][] objects;   // Dynamic game objects
     private Player player1;           // First player representation
     private Player player2;           // Second player representation
-    private List<Pot> pots;           // List of pots
+    private final List<Pot> pots;           // List of pots
 
     /**
      * Constructs a grid for the Overcooked AI game.
@@ -117,40 +117,89 @@ public class Grid {
         // Remove outer brackets/braces
         objectsString = objectsString.replaceAll("^\\{|\\}$", "").trim();
         
-        // Split the string by commas followed by newlines or just newlines
-        String[] objectEntries = objectsString.split(",\\s*\\n|\\n");
+        // Process soup objects first (they have special format with ingredients and cooking tick on separate lines)
+        processSoupObjects(objectsString);
         
-        for (String entry : objectEntries) {
-            entry = entry.trim();
-            if (entry.isEmpty()) continue;
+        // Process other standalone objects
+        processStandardObjects(objectsString);
+    }
+
+    /**
+     * Process soup objects with their ingredients and cooking ticks
+     * 
+     * @param objectsString Complete objects string
+     */
+    private void processSoupObjects(String objectsString) {
+        // Pattern to match soup objects with positions
+        Pattern soupPattern = Pattern.compile("\\((\\d+),\\s*(\\d+)\\):\\s*soup@\\(\\d+,\\s*\\d+\\)");
+        Matcher soupMatcher = soupPattern.matcher(objectsString);
+        
+        while (soupMatcher.find()) {
+            int potX = Integer.parseInt(soupMatcher.group(1));
+            int potY = Integer.parseInt(soupMatcher.group(2));
             
-            // Check if this entry is a pot (contains "Ingredients:" and "Cooking Tick:")
-            if (entry.contains("Ingredients:") && entry.contains("Cooking Tick:")) {
-                // Create a new pot from the entry
-                Pot pot = new Pot(entry);
+            // Find ingredients list and cooking tick for this soup
+            // We need to search ahead from the current position
+            int soupStart = soupMatcher.start();
+            
+            // Extract a region of text after the soup position to find ingredients and cooking tick
+            int searchEndIndex = Math.min(soupStart + 200, objectsString.length());
+            String potRegion = objectsString.substring(soupStart, searchEndIndex);
+            
+            // Extract ingredients list
+            Pattern ingredPattern = Pattern.compile("Ingredients:\\s*\\[(.*?)\\]");
+            Matcher ingredMatcher = ingredPattern.matcher(potRegion);
+            
+            if (ingredMatcher.find()) {
+                // Extract cooking tick
+                Pattern tickPattern = Pattern.compile("Cooking Tick:\\s*(-?\\d+)");
+                Matcher tickMatcher = tickPattern.matcher(potRegion);
                 
-                // Add pot to the list
-                this.pots.add(pot);
-                
-                // Mark pot location on the objects grid with 'p'
-                this.objects[pot.y][pot.x] = 'P';
-            } else {
-                // Pattern to match (x, y): object@(x, y)
-                Pattern pattern = Pattern.compile("\\((\\d+),\\s*(\\d+)\\):\\s*(\\w+)@\\(\\d+,\\s*\\d+\\)");
-                Matcher matcher = pattern.matcher(entry);
-                
-                if (matcher.find()) {
-                    int x = Integer.parseInt(matcher.group(1));  // Object x position
-                    int y = Integer.parseInt(matcher.group(2));  // Object y position
-                    String objectType = matcher.group(3).toLowerCase();  // Object type
+                if (tickMatcher.find()) {
+                    // Construct a pot string that the constructor can parse
+                    String potStr = "(" + potX + ", " + potY + ") " +
+                                    "Ingredients: [" + ingredMatcher.group(1) + "] " +
+                                    "Cooking Tick: " + tickMatcher.group(1);
                     
-                    // Get first letter of object type as lowercase
-                    char objectChar = objectType.charAt(0);
+                    // Create a new pot at this position with the pot string
+                    Pot newPot = new Pot(potStr);
                     
-                    // Add object to grid (as lowercase letter)
-                    this.objects[y][x] = objectChar;
+                    // Add the new pot to the pots list
+                    pots.add(newPot);
+                    
+                    // Mark pot location on the objects grid with 'P'
+                    this.objects[potY][potX] = 'P';
                 }
             }
+        }
+    }
+
+    /**
+     * Process standard objects (non-soup)
+     * 
+     * @param objectsString Complete objects string
+     */
+    private void processStandardObjects(String objectsString) {
+        // Pattern for standard objects (format: (x, y): object@(x, y))
+        Pattern objectPattern = Pattern.compile("\\((\\d+),\\s*(\\d+)\\):\\s*(\\w+)@\\(\\d+,\\s*\\d+\\)");
+        Matcher objectMatcher = objectPattern.matcher(objectsString);
+        
+        while (objectMatcher.find()) {
+            String objectType = objectMatcher.group(3).toLowerCase();
+            
+            // Skip soup objects as they're handled separately
+            if (objectType.equals("soup")) {
+                continue;
+            }
+            
+            int x = Integer.parseInt(objectMatcher.group(1));
+            int y = Integer.parseInt(objectMatcher.group(2));
+            
+            // Get first letter of object type as lowercase
+            char objectChar = objectType.charAt(0);
+            
+            // Add object to grid (as lowercase letter)
+            this.objects[y][x] = objectChar;
         }
     }
 
@@ -302,59 +351,58 @@ public class Grid {
         private int x;  // X position
         private int y;  // Y position
         private int cookingTick;  // Timer for cooking
-        private List<Character> ingredients;  // Ingredients in pot
+        private final List<Character> ingredients;  // Ingredients in pot
 
         /**
          * Creates a pot from string representation
          * 
-         * @param pot String containing pot state information
+         * @param potStr String containing pot state information
          */
-        public Pot(String pot) {
-            // Default initialization
-            this.x = 0;
-            this.y = 0;
-            this.cookingTick = -1;
+        public Pot(String potStr) {
             this.ingredients = new ArrayList<>();
+            this.cookingTick = -1;
             
             // Early return if no pot data
-            if (pot == null || pot.isEmpty()) {
+            if (potStr == null || potStr.isEmpty()) {
+                this.x = 0;
+                this.y = 0;
                 return;
             }
-            
+
             try {
-                // Extract position (x, y)
+                // Extract pot position
                 Pattern posPattern = Pattern.compile("\\((\\d+),\\s*(\\d+)\\)");
-                Matcher posMatcher = posPattern.matcher(pot);
+                Matcher posMatcher = posPattern.matcher(potStr);
                 if (posMatcher.find()) {
                     this.x = Integer.parseInt(posMatcher.group(1));
                     this.y = Integer.parseInt(posMatcher.group(2));
+                } else {
+                    this.x = 0;
+                    this.y = 0;
                 }
-                
+
                 // Extract ingredient list
                 Pattern ingredPattern = Pattern.compile("Ingredients:\\s*\\[(.*?)\\]");
-                Matcher ingredMatcher = ingredPattern.matcher(pot);
+                Matcher ingredMatcher = ingredPattern.matcher(potStr);
                 if (ingredMatcher.find()) {
                     String ingredientsStr = ingredMatcher.group(1);
                     Pattern ingredItemPattern = Pattern.compile("(\\w+)@");
                     Matcher ingredItemMatcher = ingredItemPattern.matcher(ingredientsStr);
                     while (ingredItemMatcher.find()) {
-                        // Get first letter of ingredient
+                        // Get the first letter of the ingredient
                         this.ingredients.add(ingredItemMatcher.group(1).charAt(0));
                     }
                 }
-                
+
                 // Extract cooking tick
                 Pattern tickPattern = Pattern.compile("Cooking Tick:\\s*(-?\\d+)");
-                Matcher tickMatcher = tickPattern.matcher(pot);
+                Matcher tickMatcher = tickPattern.matcher(potStr);
                 if (tickMatcher.find()) {
                     this.cookingTick = Integer.parseInt(tickMatcher.group(1));
                 }
             } catch (NumberFormatException e) {
                 // Handle number parsing errors
                 System.err.println("Error parsing numeric values: " + e.getMessage());
-            } catch (IndexOutOfBoundsException | IllegalStateException e) {
-                // Handle regex group access errors
-                System.err.println("Error accessing regex groups: " + e.getMessage());
             } catch (PatternSyntaxException e) {
                 // Handle regex pattern errors
                 System.err.println("Error in regex pattern: " + e.getMessage());
