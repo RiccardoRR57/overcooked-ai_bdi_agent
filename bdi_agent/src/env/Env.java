@@ -75,8 +75,6 @@ public class Env extends Environment {
         setOrders(all_orders);         // Update regular orders
         this.timestep=timestep;        // Update time
         grid.setObjects(objects);      // Update game objects
-        logger.info(player1);
-        logger.info(player2);
         grid.setPlayer(player1, 1);    // Update player 1 position
         grid.setPlayer(player2, 2);    // Update player 2 position
 
@@ -84,7 +82,8 @@ public class Env extends Environment {
     }
 
     public int getAction() {
-        return 5;
+        Random rand = new Random();
+        return rand.nextInt(6);
     }
 
     /**

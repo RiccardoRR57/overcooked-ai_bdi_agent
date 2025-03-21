@@ -139,7 +139,7 @@ public class Pot {
         if (cookingTick == -1) {
             sb.append(" not cooking");
         } else {
-            sb.append(" cooking: ").append(cookingTick).append(" ticks remaining");
+            sb.append(" cooking: ").append(cookingTick);
         }
         
         return sb.toString();

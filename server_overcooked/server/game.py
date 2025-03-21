@@ -744,6 +744,7 @@ class BdiAgent:
             self.env.updateState(str(state.players[0]), str(state.players[1]), str(state.objects), str(state.bonus_orders), str(state.all_orders), state.timestep)
             action_id = self.env.getAction()
             return actions[action_id], None
+        
         else:
             # Fallback to STAY if connection failed
             return Direction.STAY, None

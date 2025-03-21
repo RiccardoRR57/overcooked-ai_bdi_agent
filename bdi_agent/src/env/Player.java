@@ -30,8 +30,8 @@ public class Player {
         }
         
         // Pattern to match player position, facing direction and held object
-        // Format: (x, y) facing (dx, dy) holding [object@(x, y) | None]
-        Pattern pattern = Pattern.compile("\\((\\d+),\\s*(\\d+)\\)\\s*facing\\s*\\(([-]?\\d+),\\s*([-]?\\d+)\\)\\s*holding\\s*(\\w+@\\(\\d+,\\s*\\d+\\)|None)");
+        // Updated format to handle soup notation: (x, y) facing (dx, dy) holding {øøø✓
+        Pattern pattern = Pattern.compile("\\((\\d+),\\s*(\\d+)\\)\\s*facing\\s*\\(([-]?\\d+),\\s*([-]?\\d+)\\)\\s*holding\\s*([^\\s]+)");
         Matcher matcher = pattern.matcher(player);
         
         // If pattern doesn't match, keep default values
@@ -60,7 +60,6 @@ public class Player {
             this.holding = 0;
             return;
         }
-        
         // Determine object type from string
         if (heldObject.startsWith("onion")) {
             this.holding = 'o';  // Holding onion
@@ -68,6 +67,10 @@ public class Player {
             this.holding = 't';  // Holding tomato
         } else if (heldObject.startsWith("dish")) {
             this.holding = 'd';  // Holding dish
+        } else if (heldObject.startsWith("{")) {
+            // int onions = heldObject.length() - heldObject.replace("ø", "").length();
+            // int tomatoes = heldObject.length() - heldObject.replace("†", "").length();
+            this.holding = 's';  // Holding soup
         } else {
             this.holding = 0;    // Unknown object
         }
@@ -135,6 +138,7 @@ public class Player {
             case 'o' -> sb.append("onion");
             case 't' -> sb.append("tomato");
             case 'd' -> sb.append("dish");
+            case 's' -> sb.append("soup");
             default -> sb.append("nothing");
         }
         
