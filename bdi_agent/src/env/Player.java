@@ -1,6 +1,10 @@
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import jason.asSyntax.ASSyntax;
+import jason.asSyntax.Literal;
+import jason.asSyntax.parser.ParseException;
+
 /**
  * Class representing a player in the Overcooked game
  */
@@ -119,6 +123,25 @@ public class Player {
      */
     public char getHolding() {
         return holding;
+    }
+
+    public Literal getLiteral(int playerNum) throws ParseException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("player").append(playerNum).append("(");
+        sb.append(x).append(", ");
+        sb.append(y).append(", ");
+        sb.append(dx).append(", ");
+        sb.append(dy).append(", ");
+        switch (holding) {
+            case 'o' -> sb.append("onion");
+            case 't' -> sb.append("tomato");
+            case 'd' -> sb.append("dish");
+            case 's' -> sb.append("soup");
+            default -> sb.append("nothing");
+        }
+        sb.append(")");
+
+        return ASSyntax.parseLiteral(sb.toString());
     }
     
     /**

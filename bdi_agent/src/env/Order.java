@@ -1,5 +1,9 @@
 import java.util.List;
 
+import jason.asSyntax.ASSyntax;
+import jason.asSyntax.Literal;
+import jason.asSyntax.parser.ParseException;
+
 public class Order {
     private final List<String> ingredients;
 
@@ -35,6 +39,23 @@ public class Order {
             }
         }
         return count;
+    }
+
+    public Literal getLiteral(boolean isBonus) throws ParseException {
+        StringBuilder sb = new StringBuilder();
+        if (isBonus) {
+            sb.append("bonus_order(");
+        } else {
+            sb.append("order(");
+        }
+        for (int i = 0; i < ingredients.size(); i++) {
+            sb.append(ingredients.get(i));
+            if (i < ingredients.size() - 1) {
+                sb.append(", ");
+            }
+        }
+        sb.append(")");
+        return ASSyntax.parseLiteral(sb.toString());
     }
     
     @Override

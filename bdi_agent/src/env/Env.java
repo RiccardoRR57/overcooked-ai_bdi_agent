@@ -1,27 +1,32 @@
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.logging.Logger;
+import java.util.concurrent.ArrayBlockingQueue;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jason.asSyntax.ASSyntax;
+import jason.asSyntax.Literal;
 import jason.asSyntax.Structure;
 import jason.asSyntax.parser.ParseException;
 import jason.environment.Environment;
+import jason.stdlib.queue.add;
 import py4j.GatewayServer;
 
 public class Env extends Environment {
 
     private static final Logger logger = Logger.getLogger("bdi_agent."+Env.class.getName());
-    private GatewayServer server;  // For Python-Java communication
+    private GatewayServer server;  // For communication with overcooked server
 
-    private Grid grid;             // Game world representation
+    private Grid grid;                 // Game world representation
     private List<Order> bonus_orders;  // Special orders with extra points
     private List<Order> all_orders;    // All available orders
-    private int timestep;          // Current game tick counter
+    private int timestep;              // Current game tick counter
+
+    // private ArrayBlockingQueue<Integer> actionQueue = new ArrayBlockingQueue<>(1);
+    int action = 0;
 
     
     /**
@@ -32,13 +37,7 @@ public class Env extends Environment {
      */
     @Override
     public void init(String[] args) {
-        super.init(args);
-        try {
-            addPercept(ASSyntax.parseLiteral("percept("+args[0]+")"));
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-        
+        super.init(args);        
         server = new GatewayServer(this);
         server.start();
     }
@@ -52,7 +51,35 @@ public class Env extends Environment {
      */
     @Override
     public boolean executeAction(String agName, Structure action) {
-        logger.info("executing: "+action+", but not implemented!");
+        String actionName = action.getFunctor();
+        switch (actionName) {
+            case "north":
+                this.action = 1;
+                // actionQueue.add(1);
+                break;
+            case "south":
+                this.action = 2;
+                // actionQueue.add(2);
+                break;
+            case "west":
+                this.action = 3;
+                // actionQueue.add(3);
+                break;
+            case "east":
+                this.action = 4;
+                // actionQueue.add(4);
+                break;
+            case "interact":
+                this.action = 5;
+                // actionQueue.add(5);
+                break;
+            default:
+                logger.warning("Unknown action: " + actionName);
+                return false;
+        }
+
+
+
         if (true) { // you may improve this condition
              informAgsEnvironmentChanged();
         }
@@ -78,12 +105,14 @@ public class Env extends Environment {
         grid.setPlayer(player1, 1);    // Update player 1 position
         grid.setPlayer(player2, 2);    // Update player 2 position
 
-        logger.info(grid.toString());  // Log game state
+        updatePercepts();  // Update percepts for agents
+        informAgsEnvironmentChanged();  // Inform agents of environment change
     }
 
     public int getAction() {
-        Random rand = new Random();
-        return rand.nextInt(6);
+        int ret = this.action;
+        this.action = 0;
+        return ret;
     }
 
     /**
@@ -97,8 +126,20 @@ public class Env extends Environment {
      */
     public void reset(int height, int width, String terrain, String bonus_orders, String all_orders) {
         this.grid = new Grid(height, width, terrain);  // Initialize new game world
-        setBonusOrders(bonus_orders);                  // Set initial special orders
-        setOrders(all_orders);                         // Set initial regular orders
+        //setBonusOrders(bonus_orders);                  // Set initial special orders
+        //setOrders(all_orders);                         // Set initial regular orders
+        try {
+            clearAllPercepts();
+            addPercept("bdi_agent", grid.getHeightLiteral());
+            addPercept("bdi_agent", grid.getWidthLiteral());
+            for (Literal cell : grid.getCellLiterals()) {
+                addPercept("bdi_agent", cell);
+            }
+            informAgsEnvironmentChanged();
+        }
+        catch (ParseException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -163,6 +204,27 @@ public class Env extends Environment {
         for (List<String> ingredients : ingrList) {
             Order o = new Order(ingredients);
             bonus_orders.add(o);
+        }
+    }
+
+    private void updatePercepts() {
+        clearPercepts("bdi_agent");
+        try {
+            for (Order order : bonus_orders) {
+                addPercept("bdi_agent", order.getLiteral(true));
+            }
+            for (Order order : all_orders) {
+                addPercept("bdi_agent", order.getLiteral(false));
+            }
+            addPercept("bdi_agent", ASSyntax.parseLiteral("timestep("+timestep+")"));
+            addPercept("bdi_agent", grid.getPlayer1().getLiteral(1));
+            addPercept("bdi_agent", grid.getPlayer2().getLiteral(2));
+            for (Literal obj : grid.getObjectsLiterals()) {
+                addPercept("bdi_agent", obj);
+            }
+
+        } catch (ParseException e) {
+            e.printStackTrace();
         }
     }
 }

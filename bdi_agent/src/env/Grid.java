@@ -3,6 +3,10 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import jason.asSyntax.ASSyntax;
+import jason.asSyntax.Literal;
+import jason.asSyntax.parser.ParseException;
+
 public class Grid {
     private final int width;          // Grid width in cells
     private final int height;         // Grid height in cells
@@ -38,6 +42,89 @@ public class Grid {
                 grid[y][x] = cellChar;
             }
         }
+    }
+
+    /**
+     * Gets the width of the grid as a Jason literal.
+     *
+     * @return a literal representing the width of the grid
+     * @throws ParseException if there is an error parsing the literal
+     */
+    public Literal getWidthLiteral() throws ParseException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("width(").append(width).append(")");
+        return ASSyntax.parseLiteral(sb.toString());
+    }
+
+    /**
+     * Gets the height of the grid as a Jason literal.
+     *
+     * @return a literal representing the height of the grid
+     * @throws ParseException if there is an error parsing the literal
+     */
+    public Literal getHeightLiteral() throws ParseException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("height(").append(height).append(")");
+        return ASSyntax.parseLiteral(sb.toString());
+    }
+
+    public List<Literal> getCellLiterals() throws ParseException {
+        List<Literal> cells = new ArrayList<>();
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                StringBuilder sb = new StringBuilder();
+                sb.append("cell(");
+                switch (grid[y][x]) {
+                    case 'X' -> 
+                        sb.append("counter");
+                    case 'O' -> // Onions
+                        sb.append("onion");
+                    case 'T' -> // Tomatoes
+                        sb.append("tomato");
+                    case 'P' -> // Pot
+                        sb.append("pot");
+                    case 'D' -> // Dishes
+                        sb.append("dish");
+                    case 'S' -> // Serving station
+                        sb.append("serve");
+                    default -> sb.append("empty");
+                }
+                sb.append(", ").append(x).append(", ").append(y).append(")");
+
+                if(!sb.toString().contains("empty")) {
+                    cells.add(ASSyntax.parseLiteral(sb.toString()));
+                }
+            }
+        }
+        return cells;
+    }
+
+    public List<Literal> getObjectsLiterals() throws ParseException {
+        List<Literal> objs = new ArrayList<>();
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                char obj = objects[y][x];
+                if (obj != 0) {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("object(");
+                    switch (obj) {
+                        case 'o' -> 
+                            sb.append("onion");
+                        case 't' ->
+                            sb.append("tomato");
+                        case 'd' -> 
+                            sb.append("dish");
+                        default -> sb.append("empty");
+                    }
+                    sb.append(", ").append(x).append(", ").append(y).append(")");
+
+                    if(!sb.toString().contains("empty")) {
+                        objs.add(ASSyntax.parseLiteral(sb.toString()));
+                    }
+                }
+            }
+        }
+        return objs;
     }
 
     /**
@@ -248,5 +335,13 @@ public class Grid {
         }
         
         return sb.toString();
+    }
+
+    public Player getPlayer1() {
+        return player1;
+    }
+
+    public Player getPlayer2() {
+        return player2;
     }
 }
