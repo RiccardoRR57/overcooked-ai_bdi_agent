@@ -1,50 +1,38 @@
-import java.util.ArrayList;
-import java.util.List;
+
 import java.util.logging.Logger;
-import java.util.concurrent.ArrayBlockingQueue;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import jason.asSyntax.ASSyntax;
 import jason.asSyntax.Literal;
 import jason.asSyntax.Structure;
 import jason.asSyntax.parser.ParseException;
 import jason.environment.Environment;
-import jason.stdlib.queue.add;
 import py4j.GatewayServer;
 
 public class Env extends Environment {
 
-    private static final Logger logger = Logger.getLogger("bdi_agent."+Env.class.getName());
+    private static final Logger logger = Logger.getLogger("bdi_agent." + Env.class.getName());
     private GatewayServer server;  // For communication with overcooked server
 
     private Grid grid;                 // Game world representation
-    private List<Order> bonus_orders;  // Special orders with extra points
-    private List<Order> all_orders;    // All available orders
-    private int timestep;              // Current game tick counter
 
     // private ArrayBlockingQueue<Integer> actionQueue = new ArrayBlockingQueue<>(1);
     int action = 0;
 
-    
     /**
      * Called before the MAS execution with the args informed in .mas2j
      * Initializes the environment and starts the Python-Java gateway server
-     * 
+     *
      * @param args Arguments passed from the .mas2j file
      */
     @Override
     public void init(String[] args) {
-        super.init(args);        
+        super.init(args);
         server = new GatewayServer(this);
         server.start();
     }
 
     /**
      * Executes agent actions in the environment
-     * 
+     *
      * @param agName The agent's name performing the action
      * @param action The structure representing the action to be executed
      * @return true if the action was executed successfully
@@ -78,17 +66,15 @@ public class Env extends Environment {
                 return false;
         }
 
-
-
         if (true) { // you may improve this condition
-             informAgsEnvironmentChanged();
+            informAgsEnvironmentChanged();
         }
         return true; // the action was executed with success
     }
 
     /**
      * Updates the environment state with new game information
-     * 
+     *
      * @param player1 String representation of player 1's state
      * @param player2 String representation of player 2's state
      * @param objects String representation of objects in the environment
@@ -98,9 +84,9 @@ public class Env extends Environment {
      */
     public void updateState(String player1, String player2, String objects, String bonus_orders, String all_orders, int timestep) {
 
-        setBonusOrders(bonus_orders);  // Update special orders
-        setOrders(all_orders);         // Update regular orders
-        this.timestep=timestep;        // Update time
+        grid.setBonusOrders(bonus_orders);  // Update special orders
+        grid.setOrders(all_orders);         // Update regular orders
+        grid.setTimestep(timestep);    // Update time
         grid.setObjects(objects);      // Update game objects
         grid.setPlayer(player1, 1);    // Update player 1 position
         grid.setPlayer(player2, 2);    // Update player 2 position
@@ -117,7 +103,7 @@ public class Env extends Environment {
 
     /**
      * Resets the environment to a new state
-     * 
+     *
      * @param height Grid height
      * @param width Grid width
      * @param terrain String representation of the terrain
@@ -136,15 +122,14 @@ public class Env extends Environment {
                 addPercept("bdi_agent", cell);
             }
             informAgsEnvironmentChanged();
-        }
-        catch (ParseException e) {
+        } catch (ParseException e) {
             e.printStackTrace();
         }
     }
 
     /**
-     * Called before the end of MAS execution
-     * Cleans up resources before environment shutdown
+     * Called before the end of MAS execution Cleans up resources before
+     * environment shutdown
      */
     @Override
     public void stop() {
@@ -152,71 +137,18 @@ public class Env extends Environment {
     }
 
     /**
-     * Parses a string representation of ingredients into a list of ingredient lists
-     * 
-     * @param input String representation of ingredients in Python format
-     * @return Parsed list of ingredient lists
+     * Updates the percepts for the agents
      */
-    private static List<List<String>> parseIngredientString(String input) {
-        // Convert Python tuple format to JSON format
-        input = input.replace('(', '[')
-                     .replace(')', ']');
-
-        // Convert Python string quotes to JSON string quotes
-        input = input.replace("'", "\"");
-        
-        // Remove trailing commas in arrays which are invalid in JSON
-        input = input.replaceAll(",\\s*]", "]");
-
-        // Parse using Jackson JSON library
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            return mapper.readValue(input, new TypeReference<List<List<String>>>(){});
-        } catch (JsonProcessingException ex) {
-            logger.severe("Error parsing order string: ");
-            logger.severe(ex.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Parses and sets the regular orders from string input
-     * 
-     * @param input String representation of orders
-     */
-    private void setOrders(String input) {
-        all_orders = new ArrayList<>();
-        List<List<String>> ingrList = parseIngredientString(input);  // Parse ingredients from string
-        for (List<String> ingredients : ingrList) {
-            Order o = new Order(ingredients);  // Create order for each ingredient list
-            all_orders.add(o);                 // Add to orders collection
-        }
-    }
-    
-    /**
-     * Parses and sets the bonus orders from string input
-     * 
-     * @param input String representation of bonus orders
-     */
-    private void setBonusOrders(String input) {
-        bonus_orders = new ArrayList<>();
-        List<List<String>> ingrList = parseIngredientString(input);
-        for (List<String> ingredients : ingrList) {
-            Order o = new Order(ingredients);
-            bonus_orders.add(o);
-        }
-    }
-
     private void updatePercepts() {
         clearPercepts("bdi_agent");
         try {
-            for (Order order : bonus_orders) {
-                addPercept("bdi_agent", order.getLiteral(true));
+            for (Literal order : grid.getBonusOrdersLiterals()) {
+                addPercept("bdi_agent", order);
             }
-            for (Order order : all_orders) {
-                addPercept("bdi_agent", order.getLiteral(false));
+            for (Literal order : grid.getOrdersLiterals()) {
+                addPercept("bdi_agent", order);
             }
-            addPercept("bdi_agent", ASSyntax.parseLiteral("timestep("+timestep+")"));
+            addPercept("bdi_agent", grid.getTimestepLiteral());
             addPercept("bdi_agent", grid.getPlayer1().getLiteral(1));
             addPercept("bdi_agent", grid.getPlayer2().getLiteral(2));
             for (Literal obj : grid.getObjectsLiterals()) {

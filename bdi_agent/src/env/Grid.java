@@ -3,6 +3,10 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import jason.asSyntax.ASSyntax;
 import jason.asSyntax.Literal;
 import jason.asSyntax.parser.ParseException;
@@ -15,6 +19,9 @@ public class Grid {
     private Player player1;           // First player representation
     private Player player2;           // Second player representation
     private final List<Pot> pots;     // List of pots
+    private int timestep;
+    private List<Order> bonusOrders;   // Special orders with extra points
+    private List<Order> allOrders;    // All available orders
 
     /**
      * Constructs a grid for the Overcooked AI game.
@@ -68,6 +75,53 @@ public class Grid {
         return ASSyntax.parseLiteral(sb.toString());
     }
 
+    /**
+     * Gets the current timestep of the game as a Jason literal.
+     *
+     * @return a literal representing the current timestep
+     * @throws ParseException if there is an error parsing the literal
+     */
+    public Literal getTimestepLiteral() throws ParseException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("timestep(").append(timestep).append(")");
+        return ASSyntax.parseLiteral(sb.toString());
+    }
+
+    /**
+     * Gets all regular orders as Jason literals.
+     *
+     * @return a list of literals representing all available orders
+     * @throws ParseException if there is an error parsing the literals
+     */
+    public List<Literal> getOrdersLiterals() throws ParseException {
+        List<Literal> orders = new ArrayList<>();
+        for (Order o : allOrders) {
+            orders.add(o.getLiteral(false));
+        }
+        return orders;
+    }
+
+    /**
+     * Gets all bonus orders as Jason literals.
+     *
+     * @return a list of literals representing all bonus orders
+     * @throws ParseException if there is an error parsing the literals
+     */
+    public List<Literal> getBonusOrdersLiterals() throws ParseException {
+        List<Literal> orders = new ArrayList<>();
+        for (Order o : bonusOrders) {
+            orders.add(o.getLiteral(true));
+        }
+        return orders;
+    }
+
+    /**
+     * Converts the static grid cells to Jason literals.
+     * Returns only non-empty cells (cells that have a counter, ingredient source, etc.).
+     *
+     * @return a list of literals representing all non-empty cells in the grid
+     * @throws ParseException if there is an error parsing the literals
+     */
     public List<Literal> getCellLiterals() throws ParseException {
         List<Literal> cells = new ArrayList<>();
         for (int y = 0; y < height; y++) {
@@ -182,6 +236,60 @@ public class Grid {
             case 1 -> player1 = new Player(player);  // Update player 1
             case 2 -> player2 = new Player(player);  // Update player 2
             default -> throw new IllegalArgumentException("Invalid player number");
+        }
+    }
+
+    /**
+     * Parses and sets the regular orders from string input
+     * 
+     * @param input String representation of orders
+     */
+    public void setOrders(String input) {
+        allOrders = new ArrayList<>();
+        List<List<String>> ingrList = parseIngredientString(input);  // Parse ingredients from string
+        for (List<String> ingredients : ingrList) {
+            Order o = new Order(ingredients);  // Create order for each ingredient list
+            allOrders.add(o);                 // Add to orders collection
+        }
+    }
+
+    /**
+     * Parses and sets the bonus orders from string input
+     * 
+     * @param input String representation of bonus orders
+     */
+    public void setBonusOrders(String input) {
+        bonusOrders = new ArrayList<>();
+        List<List<String>> ingrList = parseIngredientString(input);
+        for (List<String> ingredients : ingrList) {
+            Order o = new Order(ingredients);
+            bonusOrders.add(o);
+        }
+    }
+
+    /**
+     * Parses a string representation of ingredients into a list of ingredient lists
+     * 
+     * @param input String representation of ingredients in Python format
+     * @return Parsed list of ingredient lists
+     */
+    private static List<List<String>> parseIngredientString(String input) {
+        // Convert Python tuple format to JSON format
+        input = input.replace('(', '[')
+                     .replace(')', ']');
+
+        // Convert Python string quotes to JSON string quotes
+        input = input.replace("'", "\"");
+        
+        // Remove trailing commas in arrays which are invalid in JSON
+        input = input.replaceAll(",\\s*]", "]");
+
+        // Parse using Jackson JSON library
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            return mapper.readValue(input, new TypeReference<List<List<String>>>(){});
+        } catch (JsonProcessingException ex) {
+            return null;
         }
     }
 
@@ -343,5 +451,9 @@ public class Grid {
 
     public Player getPlayer2() {
         return player2;
+    }
+
+    public void setTimestep(int timestep) {
+        this.timestep = timestep;
     }
 }
