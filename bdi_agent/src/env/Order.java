@@ -41,6 +41,13 @@ public class Order {
         return count;
     }
 
+    /**
+     * Converts an order to a Jason literal for agent perception
+     * 
+     * @param isBonus Whether this order is a bonus order
+     * @return A Jason literal representing the order
+     * @throws ParseException if there is an error parsing the literal
+     */
     public Literal getLiteral(boolean isBonus) throws ParseException {
         StringBuilder sb = new StringBuilder();
         if (isBonus) {

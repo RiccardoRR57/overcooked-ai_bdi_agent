@@ -20,7 +20,7 @@ public class Pot {
      */
     public Pot(String potStr) {
         this.ingredients = new ArrayList<>();
-        this.cookingTick = -1;
+        this.cookingTick = -1;  // Default value (-1 means not cooking)
         
         // Early return if no pot data
         if (potStr == null || potStr.isEmpty()) {
@@ -30,38 +30,46 @@ public class Pot {
         }
 
         try {
-            // Extract pot position
+            // Extract pot position using regex
+            // Example format: (3, 2)
             Pattern posPattern = Pattern.compile("\\((\\d+),\\s*(\\d+)\\)");
             Matcher posMatcher = posPattern.matcher(potStr);
             if (posMatcher.find()) {
                 this.x = Integer.parseInt(posMatcher.group(1));
                 this.y = Integer.parseInt(posMatcher.group(2));
             } else {
+                // Default position if not found
                 this.x = 0;
                 this.y = 0;
             }
 
             // Extract ingredient list
+            // Format: Ingredients: [tomato@(...), onion@(...)]
             Pattern ingredPattern = Pattern.compile("Ingredients:\\s*\\[(.*?)\\]");
             Matcher ingredMatcher = ingredPattern.matcher(potStr);
             if (ingredMatcher.find()) {
                 String ingredientsStr = ingredMatcher.group(1);
+                
+                // Extract each ingredient item from the list
+                // Each ingredient has format: name@(position)
                 Pattern ingredItemPattern = Pattern.compile("(\\w+)@");
                 Matcher ingredItemMatcher = ingredItemPattern.matcher(ingredientsStr);
                 while (ingredItemMatcher.find()) {
-                    // Get the first letter of the ingredient
+                    // Get the first letter of the ingredient name as the identifier
+                    // (o for onion, t for tomato, etc.)
                     this.ingredients.add(ingredItemMatcher.group(1).charAt(0));
                 }
             }
 
-            // Extract cooking tick
+            // Extract cooking tick - represents progress of cooking
+            // Format: Cooking Tick: 3
             Pattern tickPattern = Pattern.compile("Cooking Tick:\\s*(-?\\d+)");
             Matcher tickMatcher = tickPattern.matcher(potStr);
             if (tickMatcher.find()) {
                 this.cookingTick = Integer.parseInt(tickMatcher.group(1));
             }
         } catch (NumberFormatException e) {
-            // Handle number parsing errors
+            // Handle number parsing errors (like invalid integers)
             System.err.println("Error parsing numeric values: " + e.getMessage());
         } catch (PatternSyntaxException e) {
             // Handle regex pattern errors

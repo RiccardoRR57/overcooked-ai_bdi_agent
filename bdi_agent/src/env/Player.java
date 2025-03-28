@@ -59,12 +59,13 @@ public class Player {
      * @param heldObject String representation of held object
      */
     private void parseHeldObject(String heldObject) {
-        // Not holding anything
+        // Not holding anything (given as "None" in Python)
         if ("None".equals(heldObject)) {
             this.holding = 0;
             return;
         }
-        // Determine object type from string
+        
+        // Determine object type from string prefix
         if (heldObject.startsWith("onion")) {
             this.holding = 'o';  // Holding onion
         } else if (heldObject.startsWith("tomato")) {
@@ -72,11 +73,15 @@ public class Player {
         } else if (heldObject.startsWith("dish")) {
             this.holding = 'd';  // Holding dish
         } else if (heldObject.startsWith("{")) {
+            // Soup objects start with '{' in the game's notation
+            // The following commented lines would count specific ingredients in the soup
+            // but are currently not used:
             // int onions = heldObject.length() - heldObject.replace("ø", "").length();
             // int tomatoes = heldObject.length() - heldObject.replace("†", "").length();
+            
             this.holding = 's';  // Holding soup
         } else {
-            this.holding = 0;    // Unknown object
+            this.holding = 0;    // Unknown object (default to nothing)
         }
     }
     
@@ -125,6 +130,13 @@ public class Player {
         return holding;
     }
 
+    /**
+     * Converts player information to a Jason literal for agent perception
+     * 
+     * @param playerNum The player number (1 or 2)
+     * @return A Jason literal representing the player's state
+     * @throws ParseException if there is an error parsing the literal
+     */
     public Literal getLiteral(int playerNum) throws ParseException {
         StringBuilder sb = new StringBuilder();
         sb.append("player").append(playerNum).append("(");

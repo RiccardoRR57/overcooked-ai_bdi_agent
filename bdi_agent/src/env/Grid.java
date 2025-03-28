@@ -153,6 +153,13 @@ public class Grid {
         return cells;
     }
 
+    /**
+     * Converts dynamic objects on the grid to Jason literals.
+     * Only returns literals for non-empty objects.
+     *
+     * @return a list of literals representing objects currently on the grid
+     * @throws ParseException if there is an error parsing the literals
+     */
     public List<Literal> getObjectsLiterals() throws ParseException {
         List<Literal> objs = new ArrayList<>();
         for (int y = 0; y < height; y++) {
@@ -275,13 +282,16 @@ public class Grid {
      */
     private static List<List<String>> parseIngredientString(String input) {
         // Convert Python tuple format to JSON format
+        // Example: From ((a, b), (c, d)) to [[a, b], [c, d]]
         input = input.replace('(', '[')
                      .replace(')', ']');
 
         // Convert Python string quotes to JSON string quotes
+        // Example: From ['tomato'] to ["tomato"]
         input = input.replace("'", "\"");
         
         // Remove trailing commas in arrays which are invalid in JSON
+        // Example: From [a, b,] to [a, b]
         input = input.replaceAll(",\\s*]", "]");
 
         // Parse using Jackson JSON library
@@ -325,32 +335,35 @@ public class Grid {
      */
     private void processSoupObjects(String objectsString) {
         // Pattern to match soup objects with positions
+        // Matches format like: (3, 2): soup@(0, 0)
         Pattern soupPattern = Pattern.compile("\\((\\d+),\\s*(\\d+)\\):\\s*soup@\\(\\d+,\\s*\\d+\\)");
         Matcher soupMatcher = soupPattern.matcher(objectsString);
         
         while (soupMatcher.find()) {
+            // Extract coordinates where the pot is located
             int potX = Integer.parseInt(soupMatcher.group(1));
             int potY = Integer.parseInt(soupMatcher.group(2));
             
             // Find ingredients list and cooking tick for this soup
-            // We need to search ahead from the current position
+            // This information appears after the soup position in the string
             int soupStart = soupMatcher.start();
             
             // Extract a region of text after the soup position to find ingredients and cooking tick
+            // Limit to 200 characters, which should be enough to contain all necessary info
             int searchEndIndex = Math.min(soupStart + 200, objectsString.length());
             String potRegion = objectsString.substring(soupStart, searchEndIndex);
             
-            // Extract ingredients list
+            // Extract ingredients list with format: Ingredients: [tomato@(...), onion@(...)]
             Pattern ingredPattern = Pattern.compile("Ingredients:\\s*\\[(.*?)\\]");
             Matcher ingredMatcher = ingredPattern.matcher(potRegion);
             
             if (ingredMatcher.find()) {
-                // Extract cooking tick
+                // Extract cooking tick with format: Cooking Tick: 3
                 Pattern tickPattern = Pattern.compile("Cooking Tick:\\s*(-?\\d+)");
                 Matcher tickMatcher = tickPattern.matcher(potRegion);
                 
                 if (tickMatcher.find()) {
-                    // Construct a pot string that the constructor can parse
+                    // Construct a pot string in the format that Pot constructor expects
                     String potStr = "(" + potX + ", " + potY + ") " +
                                     "Ingredients: [" + ingredMatcher.group(1) + "] " +
                                     "Cooking Tick: " + tickMatcher.group(1);
@@ -445,14 +458,29 @@ public class Grid {
         return sb.toString();
     }
 
+    /**
+     * Gets the first player's object
+     *
+     * @return the Player object representing player 1
+     */
     public Player getPlayer1() {
         return player1;
     }
 
+    /**
+     * Gets the second player's object
+     *
+     * @return the Player object representing player 2
+     */
     public Player getPlayer2() {
         return player2;
     }
 
+    /**
+     * Sets the current timestep of the game
+     *
+     * @param timestep current game timestep
+     */
     public void setTimestep(int timestep) {
         this.timestep = timestep;
     }

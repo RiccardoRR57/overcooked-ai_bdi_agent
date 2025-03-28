@@ -1,4 +1,3 @@
-
 import java.util.logging.Logger;
 
 import jason.asSyntax.Literal;
@@ -11,6 +10,14 @@ public class Env extends Environment {
 
     private static final Logger logger = Logger.getLogger("bdi_agent." + Env.class.getName());
     private GatewayServer server;  // For communication with overcooked server
+
+    // Constants for action codes
+    private static final int ACTION_NONE = 0;
+    private static final int ACTION_NORTH = 1;
+    private static final int ACTION_SOUTH = 2;
+    private static final int ACTION_WEST = 3;
+    private static final int ACTION_EAST = 4;
+    private static final int ACTION_INTERACT = 5;
 
     private Grid grid;                 // Game world representation
 
@@ -42,32 +49,23 @@ public class Env extends Environment {
         String actionName = action.getFunctor();
         switch (actionName) {
             case "north":
-                this.action = 1;
-                // actionQueue.add(1);
+                this.action = ACTION_NORTH;
                 break;
             case "south":
-                this.action = 2;
-                // actionQueue.add(2);
+                this.action = ACTION_SOUTH;
                 break;
             case "west":
-                this.action = 3;
-                // actionQueue.add(3);
+                this.action = ACTION_WEST;
                 break;
             case "east":
-                this.action = 4;
-                // actionQueue.add(4);
+                this.action = ACTION_EAST;
                 break;
             case "interact":
-                this.action = 5;
-                // actionQueue.add(5);
+                this.action = ACTION_INTERACT;
                 break;
             default:
                 logger.warning("Unknown action: " + actionName);
                 return false;
-        }
-
-        if (true) { // you may improve this condition
-            informAgsEnvironmentChanged();
         }
         return true; // the action was executed with success
     }
@@ -95,9 +93,14 @@ public class Env extends Environment {
         informAgsEnvironmentChanged();  // Inform agents of environment change
     }
 
+    /**
+     * Gets the current action chosen by the agent and resets it
+     * 
+     * @return The action code (1-5) or 0 if no action
+     */
     public int getAction() {
         int ret = this.action;
-        this.action = 0;
+        this.action = ACTION_NONE;
         return ret;
     }
 
@@ -111,16 +114,28 @@ public class Env extends Environment {
      * @param all_orders String representation of all available orders
      */
     public void reset(int height, int width, String terrain, String bonus_orders, String all_orders) {
-        this.grid = new Grid(height, width, terrain);  // Initialize new game world
-        //setBonusOrders(bonus_orders);                  // Set initial special orders
-        //setOrders(all_orders);                         // Set initial regular orders
+        // Initialize new game world with terrain layout
+        this.grid = new Grid(height, width, terrain);
+        
+        // NOTE: The following lines are commented out because the orders
+        // are set later in updateState() method instead
+        // grid.setBonusOrders(bonus_orders);  // Would set initial special orders
+        // grid.setOrders(all_orders);         // Would set initial regular orders
+        
         try {
+            // Clear all existing percepts to start fresh
             clearAllPercepts();
+            
+            // Add grid dimensions as percepts for the agent
             addPercept("bdi_agent", grid.getHeightLiteral());
             addPercept("bdi_agent", grid.getWidthLiteral());
+            
+            // Add static cell locations (counters, serving stations, etc.)
             for (Literal cell : grid.getCellLiterals()) {
                 addPercept("bdi_agent", cell);
             }
+            
+            // Notify agents about changes to the environment
             informAgsEnvironmentChanged();
         } catch (ParseException e) {
             e.printStackTrace();
@@ -137,7 +152,8 @@ public class Env extends Environment {
     }
 
     /**
-     * Updates the percepts for the agents
+     * Updates the percepts for the agents.
+     * Clears existing percepts and adds current game state information.
      */
     private void updatePercepts() {
         clearPercepts("bdi_agent");
