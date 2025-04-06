@@ -119,8 +119,8 @@ public class Env extends Environment {
         
         // NOTE: The following lines are commented out because the orders
         // are set later in updateState() method instead
-        // grid.setBonusOrders(bonus_orders);  // Would set initial special orders
-        // grid.setOrders(all_orders);         // Would set initial regular orders
+        grid.setBonusOrders(bonus_orders);  // Would set initial special orders
+        grid.setOrders(all_orders);         // Would set initial regular orders
         
         try {
             // Clear all existing percepts to start fresh
