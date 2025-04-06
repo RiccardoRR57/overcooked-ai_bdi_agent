@@ -13,7 +13,7 @@ services:
         network_mode: "host"  # Use host network mode
         environment: 
             FLASK_ENV: "${BUILD_ENV:-production}"
-            HOST: "0.0.0.0"  # Ensure the Flask app binds to all interfaces
+            HOST: "localhost"  # Ensure the Flask app binds to all interfaces
             PORT: "5000"     # Define the port for Flask
         #ports:
             #- "80:5000"
