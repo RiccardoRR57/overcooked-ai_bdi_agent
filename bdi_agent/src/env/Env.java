@@ -158,19 +158,28 @@ public class Env extends Environment {
     private void updatePercepts() {
         clearPercepts("bdi_agent");
         try {
+            // Add grid dimensions as percepts for the agent
+            addPercept("bdi_agent", grid.getHeightLiteral());
+            addPercept("bdi_agent", grid.getWidthLiteral());
+            
+            // Add static cell locations (counters, serving stations, etc.)
+            for (Literal cell : grid.getCellLiterals()) {
+                addPercept("bdi_agent", cell);
+            }
+
             for (Literal order : grid.getBonusOrdersLiterals()) {
                 addPercept("bdi_agent", order);
             }
             for (Literal order : grid.getOrdersLiterals()) {
                 addPercept("bdi_agent", order);
             }
-            addPercept("bdi_agent", grid.getTimestepLiteral());
+            
             addPercept("bdi_agent", grid.getPlayer1().getLiteral(1));
             addPercept("bdi_agent", grid.getPlayer2().getLiteral(2));
             for (Literal obj : grid.getObjectsLiterals()) {
                 addPercept("bdi_agent", obj);
             }
-
+            addPercept("bdi_agent", grid.getTimestepLiteral());
         } catch (ParseException e) {
             e.printStackTrace();
         }
