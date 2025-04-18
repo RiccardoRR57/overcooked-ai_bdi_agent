@@ -4,7 +4,7 @@
 
 +!exec_action(A) : timestep(N) 
     <-  A;
-        .wait(timestep(N+2)).
+        .wait(timestep(N+1)).
 
 +!exec_action(A) : true 
     <-  .wait(timestep(_));

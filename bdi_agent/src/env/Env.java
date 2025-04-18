@@ -1,3 +1,5 @@
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import jason.asSyntax.Literal;
@@ -21,8 +23,8 @@ public class Env extends Environment {
 
     private Grid grid;                 // Game world representation
 
-    // private ArrayBlockingQueue<Integer> actionQueue = new ArrayBlockingQueue<>(1);
-    int action = 0;
+    private final ArrayBlockingQueue<Integer> actionQueue = new ArrayBlockingQueue<>(1);
+    //int action = 0;
 
     /**
      * Called before the MAS execution with the args informed in .mas2j
@@ -48,24 +50,15 @@ public class Env extends Environment {
     public boolean executeAction(String agName, Structure action) {
         String actionName = action.getFunctor();
         switch (actionName) {
-            case "north":
-                this.action = ACTION_NORTH;
-                break;
-            case "south":
-                this.action = ACTION_SOUTH;
-                break;
-            case "west":
-                this.action = ACTION_WEST;
-                break;
-            case "east":
-                this.action = ACTION_EAST;
-                break;
-            case "interact":
-                this.action = ACTION_INTERACT;
-                break;
-            default:
-                logger.warning("Unknown action: " + actionName);
+            case "north" -> this.actionQueue.add(ACTION_NORTH);
+            case "south" -> this.actionQueue.add(ACTION_SOUTH);
+            case "west" -> this.actionQueue.add(ACTION_WEST);
+            case "east" -> this.actionQueue.add(ACTION_EAST);
+            case "interact" -> this.actionQueue.add(ACTION_INTERACT);
+            default -> {
+                logger.log(Level.WARNING, "Unknown action: {0}", actionName);
                 return false;
+            }
         }
         return true; // the action was executed with success
     }
@@ -98,10 +91,8 @@ public class Env extends Environment {
      * 
      * @return The action code (1-5) or 0 if no action
      */
-    public int getAction() {
-        int ret = this.action;
-        this.action = ACTION_NONE;
-        return ret;
+    public int getAction() throws InterruptedException {
+        return  actionQueue.take();  // Wait for an action to be available
     }
 
     /**
