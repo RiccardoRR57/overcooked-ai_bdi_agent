@@ -4,7 +4,8 @@
 
 +!exec_action(A) : timestep(N) 
     <-  A;
-        .wait(timestep(N+1)).
+        .wait(timestep(N+1));
+        .print("executed action: ", A).
 
 +!exec_action(A) : true 
     <-  .wait(timestep(_));
@@ -19,10 +20,9 @@
 
 +object(T,X,Y) : true <- .print("object: ", T, ", ", X, ", ", Y).
 
-+player1(X,Y,Dx,Dy,Holding) : true <- 
-    .print("player1: ", X, ", ", Y, ", ", Dx, ", ", Dy, ", ", Holding).
++player(X,Y,Dx,Dy,Holding) : true <- .print("me: ", X, ", ", Y, ", ", Dx, ", ", Dy, ", ", Holding).
 
-+player2(X,Y,Dx,Dy,Holding) : true <- .print("player2: ", X, ", ", Y, ", ", Dx, ", ", Dy, ", ", Holding).
++other_player(X,Y,Dx,Dy,Holding) : true <- .print("other: ", X, ", ", Y, ", ", Dx, ", ", Dy, ", ", Holding).
 
 +timestep(N) : true <- .print("timestep: ", N).
 
@@ -47,7 +47,7 @@
     !go_towards(dish);
     !exec_action(interact);
     !go_towards(pot);
-    while(player1(_,_,_,_,dish)) {
+    while(player(_,_,_,_,dish)) {
         .print("tento di prendere la zuppa");
         !exec_action(interact);
     }
@@ -56,18 +56,18 @@
     !cook.
 
 /* Piano principale */
-+!go_towards(Object) : cell(Object, EndX, EndY) & player1(StartX, StartY,_,_,_)<-
++!go_towards(Object) : cell(Object, EndX, EndY) & player(StartX, StartY,_,_,_)<-
     .print("Cerco il percorso da (", StartX, ",", StartY, ") a (", EndX, ",", EndY, ")");
     !simple_navigate(EndX, EndY).
 
-+!go_towards(Object) : player1(StartX, StartY,_,_,_) <-
++!go_towards(Object) : player(StartX, StartY,_,_,_) <-
     .print("sono nella cella (", StartX, ",", StartY, ")");
     .print("non so dove andare per ", Object).
 
 // Simple navigation algorithm
 +!simple_navigate(GoalX, GoalY) <-
     // Get current position
-    ?player1(CurrentX, CurrentY,_,_,_);
+    ?player(CurrentX, CurrentY,_,_,_);
     .print("[NAV] Current: (", CurrentX, ",", CurrentY, ") Target: (", GoalX, ",", GoalY, ")");
     
     // Check if we're already adjacent to the goal
@@ -85,7 +85,7 @@
     }.
 
 // Plan to make the agent face the target
-+!face_target(GoalX, GoalY) : player1(CurrentX, CurrentY,Dx,Dy,_)<-
++!face_target(GoalX, GoalY) : player(CurrentX, CurrentY,Dx,Dy,_)<-
     // Calculate direction vector to target
     TargetDx = GoalX - CurrentX;
     TargetDy = GoalY - CurrentY;
@@ -123,7 +123,7 @@
     }.
 
 // Plan to turn to a specified direction
-+!turn_to(Direction) : player1(_,_, Dx, Dy,_) <-
++!turn_to(Direction) : player(_,_, Dx, Dy,_) <-
     .print("[TURN] Turning to face ", Direction);
     
     if ((Direction == east & Dx == 1 & Dy == 0) |
@@ -138,7 +138,7 @@
     }.
 
 // Move one step towards the goal
-+!move_step_towards(GoalX, GoalY) : player1(CurrentX, CurrentY,_,_,_) <-
++!move_step_towards(GoalX, GoalY) : player(CurrentX, CurrentY,_,_,_) <-
     // Determine best direction to move (X coordinate first, then Y)
     if (CurrentX < GoalX) {
         .print("[PATH] Trying to move EAST (X alignment)");
@@ -166,7 +166,7 @@
     }.
 
 // Try to move in the given direction, check for obstacles
-+!try_move(Direction, GoalX, GoalY) : player1(CurrentX, CurrentY,_,_,_) <-
++!try_move(Direction, GoalX, GoalY) : player(CurrentX, CurrentY,_,_,_) <-
     // Calculate next position based on direction
     if (Direction == east) {
         NextX = CurrentX + 1;
@@ -206,7 +206,7 @@
     }.
 
 // Try alternative directions when obstacle encountered
-+!try_alternative_move(Direction, GoalX, GoalY) : player1(CurrentX, CurrentY,_,_,_) <-
++!try_alternative_move(Direction, GoalX, GoalY) : player(CurrentX, CurrentY,_,_,_) <-
     .print("[REROUTE] Finding alternative to ", Direction, " movement");
     // If obstacle along X axis, try moving on Y axis
     if (Direction == east | Direction == west) {

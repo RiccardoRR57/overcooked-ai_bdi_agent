@@ -23,8 +23,8 @@ public class Env extends Environment {
 
     private Grid grid;                 // Game world representation
 
-    private final ArrayBlockingQueue<Integer> actionQueue = new ArrayBlockingQueue<>(1);
-    //int action = 0;
+    private final ArrayBlockingQueue<Integer> actionQueue0 = new ArrayBlockingQueue<>(1);
+    private final ArrayBlockingQueue<Integer> actionQueue1 = new ArrayBlockingQueue<>(1);
 
     /**
      * Called before the MAS execution with the args informed in .mas2j
@@ -49,16 +49,31 @@ public class Env extends Environment {
     @Override
     public boolean executeAction(String agName, Structure action) {
         String actionName = action.getFunctor();
-        switch (actionName) {
-            case "north" -> this.actionQueue.add(ACTION_NORTH);
-            case "south" -> this.actionQueue.add(ACTION_SOUTH);
-            case "west" -> this.actionQueue.add(ACTION_WEST);
-            case "east" -> this.actionQueue.add(ACTION_EAST);
-            case "interact" -> this.actionQueue.add(ACTION_INTERACT);
+        ArrayBlockingQueue<Integer> actionQueue;
+        switch (agName) {
+            case "player0" -> actionQueue = actionQueue0;
+            case "player1" -> actionQueue = actionQueue1;
             default -> {
-                logger.log(Level.WARNING, "Unknown action: {0}", actionName);
+                logger.log(Level.WARNING, "Unknown agent: {0}", agName);
                 return false;
             }
+        }
+        try {
+            switch (actionName) {
+                case "north" -> actionQueue.put(ACTION_NORTH);
+                case "south" -> actionQueue.put(ACTION_SOUTH);
+                case "west" -> actionQueue.put(ACTION_WEST);
+                case "east" -> actionQueue.put(ACTION_EAST);
+                case "interact" -> actionQueue.put(ACTION_INTERACT);
+                default -> {
+                    logger.log(Level.WARNING, "Unknown action: {0}", actionName);
+                    return false;
+                }
+            }
+        } catch (InterruptedException e) {
+            logger.log(Level.SEVERE, "Error while executing action: {0}", e.getMessage());
+            Thread.currentThread().interrupt();  // Restore interrupted status
+            return false;
         }
         return true; // the action was executed with success
     }
@@ -66,23 +81,30 @@ public class Env extends Environment {
     /**
      * Updates the environment state with new game information
      *
+     * @param player0 String representation of player 0's state
      * @param player1 String representation of player 1's state
-     * @param player2 String representation of player 2's state
      * @param objects String representation of objects in the environment
      * @param bonus_orders String representation of bonus orders
      * @param all_orders String representation of all available orders
      * @param timestep Current time step in the game
      */
-    public void updateState(String player1, String player2, String objects, String bonus_orders, String all_orders, int timestep) {
+    public void updateState(String player0, String player1, String objects, String bonus_orders, String all_orders, int timestep) {
 
         grid.setBonusOrders(bonus_orders);  // Update special orders
         grid.setOrders(all_orders);         // Update regular orders
         grid.setTimestep(timestep);    // Update time
         grid.setObjects(objects);      // Update game objects
+        grid.setPlayer(player0, 0);    // Update player 0 position
         grid.setPlayer(player1, 1);    // Update player 1 position
-        grid.setPlayer(player2, 2);    // Update player 2 position
 
-        updatePercepts();  // Update percepts for agents
+        if(grid.isBdiAgent(0)) {
+            // Update percepts for player 0 (BDI agent)
+            updatePercepts(0);
+        }
+        if(grid.isBdiAgent(1)) {
+            // Update percepts for player 1 (BDI agent)
+            updatePercepts(1);
+        }
         informAgsEnvironmentChanged();  // Inform agents of environment change
     }
 
@@ -91,8 +113,14 @@ public class Env extends Environment {
      * 
      * @return The action code (1-5) or 0 if no action
      */
-    public int getAction() throws InterruptedException {
-        return  actionQueue.take();  // Wait for an action to be available
+    public int getAction(int id) throws InterruptedException {
+        if (id == 0) {
+            return 0;
+            //return actionQueue0.take();  // Wait for an action to be available
+        } else if (id == 1) {
+            return actionQueue1.take();  // Wait for an action to be available
+        }
+        return ACTION_NONE;  // No action available
     }
 
     /**
@@ -104,10 +132,12 @@ public class Env extends Environment {
      * @param bonus_orders String representation of bonus orders
      * @param all_orders String representation of all available orders
      */
-    public void reset(int height, int width, String terrain, String bonus_orders, String all_orders) {
+    public void reset(int height, int width, String terrain, String bonus_orders, String all_orders, int id) {
+
         // Initialize new game world with terrain layout
         this.grid = new Grid(height, width, terrain);
-        
+        this.grid.setBdiAgent(id);
+
         // NOTE: The following lines are commented out because the orders
         // are set later in updateState() method instead
         grid.setBonusOrders(bonus_orders);  // Would set initial special orders
@@ -118,12 +148,12 @@ public class Env extends Environment {
             clearAllPercepts();
             
             // Add grid dimensions as percepts for the agent
-            addPercept("bdi_agent", grid.getHeightLiteral());
-            addPercept("bdi_agent", grid.getWidthLiteral());
+            addPercept(grid.getHeightLiteral());
+            addPercept(grid.getWidthLiteral());
             
             // Add static cell locations (counters, serving stations, etc.)
             for (Literal cell : grid.getCellLiterals()) {
-                addPercept("bdi_agent", cell);
+                addPercept(cell);
             }
             
             // Notify agents about changes to the environment
@@ -146,31 +176,34 @@ public class Env extends Environment {
      * Updates the percepts for the agents.
      * Clears existing percepts and adds current game state information.
      */
-    private void updatePercepts() {
-        clearPercepts("bdi_agent");
+    private void updatePercepts(int playerId) {
+        String agentName = "player" + playerId;
+        int otherId = (playerId + 1) % 2; // Get the other player's ID
+        clearPercepts(agentName);
         try {
             // Add grid dimensions as percepts for the agent
-            addPercept("bdi_agent", grid.getHeightLiteral());
-            addPercept("bdi_agent", grid.getWidthLiteral());
+            addPercept(agentName, grid.getHeightLiteral());
+            addPercept(agentName, grid.getWidthLiteral());
             
             // Add static cell locations (counters, serving stations, etc.)
             for (Literal cell : grid.getCellLiterals()) {
-                addPercept("bdi_agent", cell);
+                addPercept(agentName, cell);
             }
 
             for (Literal order : grid.getBonusOrdersLiterals()) {
-                addPercept("bdi_agent", order);
+                addPercept(agentName, order);
             }
             for (Literal order : grid.getOrdersLiterals()) {
-                addPercept("bdi_agent", order);
+                addPercept(agentName, order);
             }
             
-            addPercept("bdi_agent", grid.getPlayer1().getLiteral(1));
-            addPercept("bdi_agent", grid.getPlayer2().getLiteral(2));
+            addPercept(agentName, grid.getPlayer(playerId).getLiteral(false));
+            addPercept(agentName, grid.getPlayer(otherId).getLiteral(true));
+
             for (Literal obj : grid.getObjectsLiterals()) {
-                addPercept("bdi_agent", obj);
+                addPercept(agentName, obj);
             }
-            addPercept("bdi_agent", grid.getTimestepLiteral());
+            addPercept(agentName, grid.getTimestepLiteral());
         } catch (ParseException e) {
             e.printStackTrace();
         }

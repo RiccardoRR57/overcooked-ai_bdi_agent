@@ -16,12 +16,12 @@ public class Grid {
     private final int height;         // Grid height in cells
     private final char[][] grid;      // Static terrain representation
     private final char[][] objects;   // Dynamic game objects
-    private Player player1;           // First player representation
-    private Player player2;           // Second player representation
+    private final Player[] players; // Array of player representations
     private final List<Pot> pots;     // List of pots
     private int timestep;
     private List<Order> bonusOrders;   // Special orders with extra points
     private List<Order> allOrders;    // All available orders
+    private final boolean[] bdi;
 
     /**
      * Constructs a grid for the Overcooked AI game.
@@ -36,6 +36,10 @@ public class Grid {
         this.grid = new char[height][width];
         this.objects = new char[height][width];
         this.pots = new ArrayList<>();
+        this.bdi = new boolean[2];
+        this.players = new Player[2]; // Two players in the game
+        this.allOrders = new ArrayList<>();
+        this.bonusOrders = new ArrayList<>();
         
         if (layout.length() != width * height) {
             throw new IllegalArgumentException("Layout string length must match grid dimensions");
@@ -49,6 +53,31 @@ public class Grid {
                 grid[y][x] = cellChar;
             }
         }
+    }
+
+    /**
+     * Sets the BDI agent status for the specified player ID.
+     *
+     * @param id the player ID (0 or 1)
+     */
+    public void setBdiAgent(int id) {
+        if (id < 0 || id >= bdi.length) {
+            throw new IllegalArgumentException("Invalid player ID");
+        }
+        bdi[id] = true;
+    }
+
+    /**
+     * Checks if the specified player ID is a BDI agent.
+     *
+     * @param id the player ID (0 or 1)
+     * @return true if the player is a BDI agent, false otherwise
+     */
+    public boolean isBdiAgent(int id) {
+        if (id < 0 || id >= bdi.length) {
+            throw new IllegalArgumentException("Invalid player ID");
+        }
+        return bdi[id];
     }
 
     /**
@@ -236,14 +265,13 @@ public class Grid {
      * Updates the player's state based on information from game engine
      * 
      * @param player String representation of player state
-     * @param playerNum Player number (1 or 2)
+     * @param playerId Player number (0 or 1)
      */
-    public void setPlayer(String player, int playerNum) {
-        switch (playerNum) {
-            case 1 -> player1 = new Player(player);  // Update player 1
-            case 2 -> player2 = new Player(player);  // Update player 2
-            default -> throw new IllegalArgumentException("Invalid player number");
+    public void setPlayer(String player, int playerId) {
+        if (player == null || player.isEmpty()) {
+            throw new IllegalArgumentException("Invalid player number");  // No player information provided
         }
+        players[playerId] = new Player(player);  // Create a new player object
     }
 
     /**
@@ -425,9 +453,9 @@ public class Grid {
             for (int x = 0; x < width; x++) {
                 if (objects[y][x] != 0) {
                     sb.append(objects[y][x]);  // Show objects first
-                } else if (player1 != null && player1.getX() == x && player1.getY() == y) {
+                } else if (players[0] != null && players[0].getX() == x && players[0].getY() == y) {
                     sb.append('1');  // Show player 1
-                } else if (player2 != null && player2.getX() == x && player2.getY() == y) {
+                } else if (players[1] != null && players[1].getX() == x && players[1].getY() == y) {
                     sb.append('2');  // Show player 2
                 } else{
                     sb.append(grid[y][x]);  // Show terrain
@@ -438,11 +466,11 @@ public class Grid {
         
         // Player state
         sb.append("\nPlayers:\n");
-        if (player1 != null) {
-            sb.append("Player 1: ").append(player1.toString()).append("\n");
+        if (players[0] != null) {
+            sb.append("Player 0: ").append(players[0].toString()).append("\n");
         }
-        if (player2 != null) {
-            sb.append("Player 2: ").append(player2.toString()).append("\n");
+        if (players[1] != null) {
+            sb.append("Player 1: ").append(players[1].toString()).append("\n");
         }
         
         // Pot state
@@ -461,19 +489,13 @@ public class Grid {
     /**
      * Gets the first player's object
      *
-     * @return the Player object representing player 1
+     * @return the Player object
      */
-    public Player getPlayer1() {
-        return player1;
-    }
-
-    /**
-     * Gets the second player's object
-     *
-     * @return the Player object representing player 2
-     */
-    public Player getPlayer2() {
-        return player2;
+    public Player getPlayer(int playerId) {
+        if (playerId < 0 || playerId > 1) {
+            throw new IllegalArgumentException("Invalid player number");
+        }
+        return players[playerId];
     }
 
     /**

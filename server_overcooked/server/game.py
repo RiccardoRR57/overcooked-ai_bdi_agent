@@ -677,8 +677,9 @@ class OvercookedGame(Game):
         return obj_dict
 
     def get_policy(self, npc_id, idx=0):
+        bdiEnv = BdiEnv()
         if npc_id.lower().startswith("bdi_agent"):
-            return BdiAgent()
+            return BdiAgent(bdiEnv, idx)
         elif npc_id.lower().startswith("rllib"):
             try:
                 # Loading rllib agents requires additional helpers
@@ -717,9 +718,7 @@ class OvercookedGame(Game):
                 pickle.dump(data, f)
         return data
 
-
-class BdiAgent:
-
+class BdiEnv:
     def __init__(self):
         try:
             # Connect to Java on the host machine
@@ -728,6 +727,31 @@ class BdiAgent:
         except Exception:
             self.gateway = None
             self.env = None
+    
+    def updateState(self, player_0, player_1, objects, bonus_orders, all_orders, timestep):
+        if self.env is not None:
+            self.env.updateState(player_0, player_1, objects, bonus_orders, all_orders, timestep)
+        else:
+            raise ValueError("Java gateway not connected")
+        
+    def getAction(self, id):
+        if self.env is not None:
+            action = self.env.getAction(id)
+            return action
+        else:
+            raise ValueError("Java gateway not connected")
+    
+    def reset(self, height, width, terrain, bonus_orders, all_orders, id):
+        if self.env is not None:
+            self.env.reset(height, width, terrain, bonus_orders, all_orders, id)
+        else:
+            raise ValueError("Java gateway not connected")
+
+class BdiAgent:
+
+    def __init__(self, env, id):
+        self.id = id
+        self.env = env
 
     def action(self, state):
         actions = [
@@ -742,7 +766,7 @@ class BdiAgent:
         if self.env is not None:
 
             self.env.updateState(str(state.players[0]), str(state.players[1]), str(state.objects), str(state.bonus_orders), str(state.all_orders), state.timestep)
-            action_id = self.env.getAction()
+            action_id = self.env.getAction(self.id)
             return actions[action_id], None
         
         else:
@@ -759,7 +783,7 @@ class BdiAgent:
             all_orders = [d["ingredients"] for d in world.start_all_orders if "ingredients" in d]
             bonus_orders = [d["ingredients"] for d in world.start_bonus_orders if "ingredients" in d]
             
-            self.env.reset(world.height, world.width, terrain, str(bonus_orders), str(all_orders))
+            self.env.reset(world.height, world.width, terrain, str(bonus_orders), str(all_orders), self.id)
 
 class OvercookedTutorial(OvercookedGame):
 

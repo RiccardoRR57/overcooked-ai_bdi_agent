@@ -133,13 +133,18 @@ public class Player {
     /**
      * Converts player information to a Jason literal for agent perception
      * 
-     * @param playerNum The player number (1 or 2)
+     * @param isOther Boolean indicating if it's another player
      * @return A Jason literal representing the player's state
      * @throws ParseException if there is an error parsing the literal
      */
-    public Literal getLiteral(int playerNum) throws ParseException {
+    public Literal getLiteral(boolean  isOther) throws ParseException {
         StringBuilder sb = new StringBuilder();
-        sb.append("player").append(playerNum).append("(");
+        if (isOther) {
+            sb.append("other_player");
+        } else {
+            sb.append("player");
+        }
+        sb.append("(");
         sb.append(x).append(", ");
         sb.append(y).append(", ");
         sb.append(dx).append(", ");

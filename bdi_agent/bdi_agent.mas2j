@@ -14,7 +14,9 @@ MAS chef {
 
     environment: Env(10)
 
-    agents: bdi_agent;
+    agents: 
+        player0 bdi_agent;
+        player1 bdi_agent;
 
     aslSourcePath: "src/agt";
 }
