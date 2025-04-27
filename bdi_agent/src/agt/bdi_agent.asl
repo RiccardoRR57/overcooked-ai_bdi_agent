@@ -57,103 +57,103 @@
 
 /* Piano principale */
 +!go_towards(Object) : cell(Object, EndX, EndY) & player(StartX, StartY,_,_,_)<-
-    .print("Cerco il percorso da (", StartX, ",", StartY, ") a (", EndX, ",", EndY, ")");
-    !astar_navigate(EndX, EndY).
+    .print("Finding path to be adjacent to (", EndX, ",", EndY, ")");
+    !find_adjacent_position(EndX, EndY, AdjX, AdjY);
+    !simple_navigate(AdjX, AdjY);
+    !face_object(EndX, EndY).
+
++!go_towards(Object) : object(Object, EndX, EndY) & player(StartX, StartY,_,_,_)<-
+    .print("Finding path to be adjacent to object (", EndX, ",", EndY, ")");
+    !find_adjacent_position(EndX, EndY, AdjX, AdjY);
+    !simple_navigate(AdjX, AdjY);
+    !face_object(EndX, EndY).
 
 +!go_towards(Object) : player(StartX, StartY,_,_,_) <-
-    .print("sono nella cella (", StartX, ",", StartY, ")");
-    .print("non so dove andare per ", Object).
+    .print("Cannot find location for ", Object).
 
-// --- A* Navigation for Jason ---
-
-+!astar_navigate(GoalX, GoalY) : player(StartX, StartY,_,_,_) <-
-    !clear_astar;
-    G = 0;
-    H = math.abs(StartX - GoalX) + math.abs(StartY - GoalY);
-    +open(StartX, StartY, G, H, -1, -1);
-    !astar_search(GoalX, GoalY).
-
-+!clear_astar <-
-    -open(_,_,_,_,_,_);
-    -closed(_,_); 
-    -path(_,_).
-
-+!astar_search(GoalX, GoalY) : open(X,Y,G,H,ParentX,ParentY) & not closed(GoalX,GoalY) <-
-    !select_best_open(X1,Y1,G1,H1,ParentX1,ParentY1);
-    +closed(X1,Y1);
-    -open(X1,Y1,G1,H1,ParentX1,ParentY1);
-    if (X1 == GoalX & Y1 == GoalY) {
-        !reconstruct_path(X1,Y1);
+/* Find an adjacent position to the target */
++!find_adjacent_position(TargetX, TargetY, AdjX, AdjY) : width(W) & height(H) <-
+    // Try east
+    AdjX1 = TargetX + 1;
+    AdjY1 = TargetY;
+    if (AdjX1 >= 0 & AdjX1 < W & AdjY1 >= 0 & AdjY1 < H & not cell(_, AdjX1, AdjY1) & not object(_, AdjX1, AdjY1)) {
+        AdjX = AdjX1;
+        AdjY = AdjY1;
     } else {
-        !expand_neighbors(X1,Y1,G1,GoalX,GoalY);
-        !astar_search(GoalX, GoalY);
+        // Try west
+        AdjX2 = TargetX - 1;
+        AdjY2 = TargetY;
+        if (AdjX2 >= 0 & AdjX2 < W & AdjY2 >= 0 & AdjY2 < H & not cell(_, AdjX2, AdjY2) & not object(_, AdjX2, AdjY2)) {
+            AdjX = AdjX2;
+            AdjY = AdjY2;
+        } else {
+            // Try south
+            AdjX3 = TargetX;
+            AdjY3 = TargetY + 1;
+            if (AdjX3 >= 0 & AdjX3 < W & AdjY3 >= 0 & AdjY3 < H & not cell(_, AdjX3, AdjY3) & not object(_, AdjX3, AdjY3)) {
+                AdjX = AdjX3;
+                AdjY = AdjY3;
+            } else {
+                // Try north
+                AdjX4 = TargetX;
+                AdjY4 = TargetY - 1;
+                if (AdjX4 >= 0 & AdjX4 < W & AdjY4 >= 0 & AdjY4 < H & not cell(_, AdjX4, AdjY4) & not object(_, AdjX4, AdjY4)) {
+                    AdjX = AdjX4;
+                    AdjY = AdjY4;
+                } else {
+                    .print("No valid adjacent position found for (", TargetX, ",", TargetY, ")!");
+                }
+            }
+        }
     }.
 
-+!select_best_open(X,Y,G,H,ParentX,ParentY) : open(X,Y,G,H,ParentX,ParentY) & not (open(X2,Y2,G2,H2,_,_) & (G2+H2) < (G+H)).
+/* Orient player to face the object */
++!face_object(ObjX, ObjY) : player(X, Y, Dx, Dy, _) <-
+    .print("Facing object at (", ObjX, ",", ObjY, ")");
+    .print("Current position: (", X, ",", Y, ")");
+    .print("Current direction: (", Dx, ",", Dy, ")");
+    .print("Target direction: (", ObjX - X, ",", ObjY - Y, ")");
+    if (X < ObjX) { // Object is to the east
+        !exec_action(east);
+    } else {
+        if (X > ObjX) { // Object is to the west
+            !exec_action(west);
+        } else {
+            if (Y < ObjY) { // Object is to the south
+                !exec_action(south);
+            } else {
+                if (Y > ObjY) { // Object is to the north
+                    !exec_action(north);
+                }
+            }
+        }
+    }.
 
-+!expand_neighbors(X,Y,G,GoalX,GoalY) <-
-    !try_astar_neighbor(X,Y,G,GoalX,GoalY,1,0);   // east
-    !try_astar_neighbor(X,Y,G,GoalX,GoalY,-1,0);  // west
-    !try_astar_neighbor(X,Y,G,GoalX,GoalY,0,1);   // south
-    !try_astar_neighbor(X,Y,G,GoalX,GoalY,0,-1).  // north
+// --- Simple Navigation - A placeholder we'll enhance step by step ---
 
-+!try_astar_neighbor(X,Y,G,GoalX,GoalY,DX,DY) <-
-    NX = X + DX;
-    NY = Y + DY;
-    .print("[A*] Considering neighbor (", NX, ",", NY, ")");
-    if (NX < 0 | NY < 0) {
-        .print("[A*] Skipping invalid neighbor (", NX, ",", NY, ")");
++!simple_navigate(GoalX, GoalY) : player(X, Y, _, _, _) <-
+    .print("[Navigation] Starting simple navigation from (", X, ", ", Y, ") to (", GoalX, ", ", GoalY, ")");
+    !move_to_position(GoalX, GoalY).
+
++!move_to_position(GoalX, GoalY) : player(X, Y, _, _, _) & X == GoalX & Y == GoalY <-
+    .print("[Navigation] Already at destination (", X, ", ", Y, ")").
+
++!move_to_position(GoalX, GoalY) : player(X, Y, _, _, _) <-
+    if (X < GoalX) {
+        .print("[Navigation] Moving east towards (", GoalX, ", ", GoalY, ")");
+        !exec_action(east);
+    } else {
+        if (X > GoalX) {
+            .print("[Navigation] Moving west towards (", GoalX, ", ", GoalY, ")");
+            !exec_action(west);
+        } else {
+            if (Y < GoalY) {
+                .print("[Navigation] Moving south towards (", GoalX, ", ", GoalY, ")");
+                !exec_action(south);
+            } else {
+                .print("[Navigation] Moving north towards (", GoalX, ", ", GoalY, ")");
+                !exec_action(north);
+            }
+        }
     }
-    if (NX >= 0 & NY >= 0) {
-        if (cell(_,NX,NY)) {
-            .print("[A*] Blocked by cell at (", NX, ",", NY, ")");
-        }
-        if (not cell(_,NX,NY)) {
-            if (object(_,NX,NY)) {
-                .print("[A*] Blocked by object at (", NX, ",", NY, ")");
-            }
-            if (not object(_,NX,NY)) {
-                if (closed(NX,NY)) {
-                    .print("[A*] Already closed (", NX, ",", NY, ")");
-                }
-                if (not closed(NX,NY)) {
-                    if (open(NX,NY,_,_,_,_)) {
-                        .print("[A*] Already open (", NX, ",", NY, ")");
-                    }
-                    if (not open(NX,NY,_,_,_,_)) {
-                        G1 = G + 1;
-                        H1 = math.abs(NX - GoalX) + math.abs(NY - GoalY);
-                        .print("[A*] Adding open (", NX, ",", NY, ") with G=", G1, " H=", H1, " parent=(", X, ",", Y, ")");
-                        +open(NX,NY,G1,H1,X,Y);
-                    }
-                }
-            }
-        }
-    }.
-
-+!reconstruct_path(X,Y) : closed(X,Y) & open(_,_,_,_,PX,PY) & not (PX == -1 & PY == -1) <-
-    +path(X,Y);
-    !reconstruct_path(PX,PY).
-+!reconstruct_path(X,Y) : closed(X,Y) & open(_,_,_,_,PX,PY) & (PX == -1 & PY == -1) <-
-    +path(X,Y);
-    !execute_path.
-
-+!execute_path : path(X,Y) & player(X,Y,_,_,_) <-
-    .print("[A*] Arrived at destination (", X, ",", Y, ")");
-    -path(X,Y).
-+!execute_path : path(X,Y) & not player(X,Y,_,_,_) <-
-    !move_towards(X,Y);
-    -path(X,Y);
-    !execute_path.
-
-+!move_towards(X,Y) : player(CX,CY,_,_,_) & CX < X <-
-    !exec_action(east).
-
-+!move_towards(X,Y) : player(CX,CY,_,_,_) & CX > X <-
-    !exec_action(west).
-
-+!move_towards(X,Y) : player(CX,CY,_,_,_) & CY < Y <-
-    !exec_action(south).
-
-+!move_towards(X,Y) : player(CX,CY,_,_,_) & CY > Y <-
-    !exec_action(north).
+    !move_to_position(GoalX, GoalY).
