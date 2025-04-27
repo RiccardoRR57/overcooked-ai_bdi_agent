@@ -97,14 +97,9 @@ public class Env extends Environment {
         grid.setPlayer(player0, 0);    // Update player 0 position
         grid.setPlayer(player1, 1);    // Update player 1 position
 
-        if(grid.isBdiAgent(0)) {
-            // Update percepts for player 0 (BDI agent)
-            updatePercepts(0);
-        }
-        if(grid.isBdiAgent(1)) {
-            // Update percepts for player 1 (BDI agent)
-            updatePercepts(1);
-        }
+        updatePercepts(0);
+        updatePercepts(1);
+
         informAgsEnvironmentChanged();  // Inform agents of environment change
     }
 
@@ -115,8 +110,7 @@ public class Env extends Environment {
      */
     public int getAction(int id) throws InterruptedException {
         if (id == 0) {
-            return 0;
-            //return actionQueue0.take();  // Wait for an action to be available
+            return actionQueue0.take();  // Wait for an action to be available
         } else if (id == 1) {
             return actionQueue1.take();  // Wait for an action to be available
         }
