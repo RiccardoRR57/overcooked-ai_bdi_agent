@@ -59,13 +59,13 @@
 +!go_towards(Object) : cell(Object, EndX, EndY) & player(StartX, StartY,_,_,_)<-
     .print("Finding path to be adjacent to (", EndX, ",", EndY, ")");
     !find_adjacent_position(EndX, EndY, AdjX, AdjY);
-    !simple_navigate(AdjX, AdjY);
+    !navigate(AdjX, AdjY);
     !face_object(EndX, EndY).
 
 +!go_towards(Object) : object(Object, EndX, EndY) & player(StartX, StartY,_,_,_)<-
     .print("Finding path to be adjacent to object (", EndX, ",", EndY, ")");
     !find_adjacent_position(EndX, EndY, AdjX, AdjY);
-    !simple_navigate(AdjX, AdjY);
+    !navigate(AdjX, AdjY);
     !face_object(EndX, EndY).
 
 +!go_towards(Object) : player(StartX, StartY,_,_,_) <-
@@ -129,31 +129,103 @@
         }
     }.
 
-// --- Simple Navigation - A placeholder we'll enhance step by step ---
 
-+!simple_navigate(GoalX, GoalY) : player(X, Y, _, _, _) <-
-    .print("[Navigation] Starting simple navigation from (", X, ", ", Y, ") to (", GoalX, ", ", GoalY, ")");
-    !move_to_position(GoalX, GoalY).
-
-+!move_to_position(GoalX, GoalY) : player(X, Y, _, _, _) & X == GoalX & Y == GoalY <-
-    .print("[Navigation] Already at destination (", X, ", ", Y, ")").
-
-+!move_to_position(GoalX, GoalY) : player(X, Y, _, _, _) <-
-    if (X < GoalX) {
-        .print("[Navigation] Moving east towards (", GoalX, ", ", GoalY, ")");
++!navigate(GoalX, GoalY) : player(X, Y, _, _, _) <-
+    .print("[Navigation] Starting navigation from (", X, ", ", Y, ") to (", GoalX, ", ", GoalY, ")");
+    !bfs_search(X, Y, GoalX, GoalY, Path);
+    .print("[Navigation] Path found: ", Path);
+    !follow_path(Path);
+    DirX = GoalX - X;
+    DirY = GoalY - Y;
+    if (DirX > 0) {
         !exec_action(east);
     } else {
-        if (X > GoalX) {
-            .print("[Navigation] Moving west towards (", GoalX, ", ", GoalY, ")");
+        if (DirX < 0) {
             !exec_action(west);
-        } else {
-            if (Y < GoalY) {
-                .print("[Navigation] Moving south towards (", GoalX, ", ", GoalY, ")");
-                !exec_action(south);
-            } else {
-                .print("[Navigation] Moving north towards (", GoalX, ", ", GoalY, ")");
-                !exec_action(north);
-            }
         }
     }
-    !move_to_position(GoalX, GoalY).
+    if (DirY > 0) {
+        !exec_action(south);
+    } else {
+        if (DirY < 0) {
+            !exec_action(north);
+        }
+    }.
+
++!bfs_search(StartX, StartY, GoalX, GoalY, Path) : true <-
+    .print("[Pathfinding] Finding path from (", StartX, ", ", StartY, ") to (", GoalX, ", ", GoalY, ")");
+    .queue.create(Q);
+    +dist(StartX,StartY,0);
+    +prev(StartX,StartY,-1,-1);
+    .queue.add(Q, pos(StartX, StartY));
+    while(.queue.remove(Q,H)) {
+        .print("[Pathfinding] Processing node: ", H);
+        H = pos(X,Y);
+        ?dist(X,Y,D);
+        if(not dist(X+1,Y,_) & not cell(_, X+1,Y)) {
+            .queue.add(Q, pos(X+1, Y));
+            +dist(X+1,Y,D+1);
+            +prev(X+1,Y,X,Y);
+        }
+        if(not dist(X-1,Y,_) & not cell(_, X-1,Y)) {
+            .queue.add(Q, pos(X-1, Y));
+            +dist(X-1,Y,D+1);
+            +prev(X-1,Y,X,Y);
+        }
+        if(not dist(X,Y+1,_) & not cell(_, X,Y+1)) {
+            .queue.add(Q, pos(X, Y+1));
+            +dist(X,Y+1,D+1);
+            +prev(X,Y+1,X,Y);
+        }
+        if(not dist(X,Y-1,_) & not cell(_, X,Y-1)) {
+            .queue.add(Q, pos(X, Y-1));
+            +dist(X,Y-1,D+1);
+            +prev(X,Y-1,X,Y);
+        }
+    };
+    
+    if(not dist(GoalX,GoalY,_)) {
+        .print("[Pathfinding] No path found to (", GoalX, ", ", GoalY, ")");
+        Path = [];
+    } else {
+        !build_path(GoalX, GoalY, [], Path);
+    };
+    
+    // TODO: Delete all the dist and prev beliefs
+    
+    .print("[Pathfinding] Pathfinding completed").
+
+
++!build_path(X, Y, Path, NewPath) : prev(X, Y, -1, -1) <-
+     NewPath = Path.
+
++!build_path(X, Y, Path, NewPath) : prev(X, Y, PX, PY)<-
+     AuxPath = [pos(X,Y)|Path];
+     !build_path(PX, PY, AuxPath, NewPath).
+
++!follow_path([]) : player(X,Y,_,_,_) <-
+    .print("[Pathfinding] Reached destination at (", X, ", ", Y, ")").
+
++!follow_path([H | Path]) : player(X,Y,_,_,_) <-
+    .print("[Pathfinding] Following path: ", [H | Path]);
+    H = pos(GoalX, GoalY);
+    DirX = GoalX - X;
+    DirY = GoalY - Y;
+
+    if (DirX > 0) {
+        !exec_action(east);
+    } else {
+        if (DirX < 0) {
+            !exec_action(west);
+        }
+    }
+
+    if (DirY > 0) {
+        !exec_action(south);
+    } else {
+        if (DirY < 0) {
+            !exec_action(north);
+        }
+    }
+    !follow_path(Path).
+     
