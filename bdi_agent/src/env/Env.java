@@ -1,3 +1,4 @@
+import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -65,8 +66,14 @@ public class Env extends Environment {
                 case "west" -> actionQueue.put(ACTION_WEST);
                 case "east" -> actionQueue.put(ACTION_EAST);
                 case "interact" -> actionQueue.put(ACTION_INTERACT);
+                case "wait" -> actionQueue.put(ACTION_NONE);
+                case "random" -> {
+                    Random rand = new Random();
+                    int randomAction = rand.nextInt(4) + 1;
+                    actionQueue.put(randomAction);
+                }
                 default -> {
-                    logger.log(Level.WARNING, "Unknown action: {0}", actionName);
+                    logger.log(Level.WARNING, "Unknown action: " + actionName);
                     return false;
                 }
             }
@@ -127,6 +134,10 @@ public class Env extends Environment {
      * @param all_orders String representation of all available orders
      */
     public void reset(int height, int width, String terrain, String bonus_orders, String all_orders, int id) {
+
+        // Reset action queues for both players
+        actionQueue0.clear();
+        actionQueue1.clear();
 
         // Initialize new game world with terrain layout
         this.grid = new Grid(height, width, terrain);
