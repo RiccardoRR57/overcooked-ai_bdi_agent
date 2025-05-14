@@ -12,7 +12,7 @@
 
 MAS chef {
 
-    environment: Env(10)
+    environment: Env()
 
     agents: 
         player0 bdi_agent;

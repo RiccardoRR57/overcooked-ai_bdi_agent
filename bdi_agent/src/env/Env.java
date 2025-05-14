@@ -186,6 +186,9 @@ public class Env extends Environment {
         int otherId = (playerId + 1) % 2; // Get the other player's ID
         clearPercepts(agentName);
         try {
+            addPercept(agentName, grid.getPlayer(playerId).getLiteral(false));
+            addPercept(agentName, grid.getPlayer(otherId).getLiteral(true));
+            
             // Add grid dimensions as percepts for the agent
             addPercept(agentName, grid.getHeightLiteral());
             addPercept(agentName, grid.getWidthLiteral());
@@ -201,9 +204,6 @@ public class Env extends Environment {
             for (Literal order : grid.getOrdersLiterals()) {
                 addPercept(agentName, order);
             }
-            
-            addPercept(agentName, grid.getPlayer(playerId).getLiteral(false));
-            addPercept(agentName, grid.getPlayer(otherId).getLiteral(true));
 
             for (Literal obj : grid.getObjectsLiterals()) {
                 addPercept(agentName, obj);

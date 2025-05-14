@@ -24,7 +24,7 @@
 
 +other_player(X,Y,Dx,Dy,Holding) : true <- .print("other: ", X, ", ", Y, ", ", Dx, ", ", Dy, ", ", Holding).
 
-+timestep(N) : true <- .print("timestep: ", N).
++timestep(N) : true <- .print("timestep: ", N); .wait(player(_,_,_,_,_)).
 
 +order(I1,I2,I3) : true <- .print("order: ", I1, ", ", I2, ", ", I3).
 
@@ -89,31 +89,6 @@
 
     +reachable(Reachable);
     .print("[Reachability] Reachable cells: ", Reachable).
-
-+!cook : order(I1,I2,I3) <- 
-    !go_towards(I1);
-    !exec_action(interact);
-    !go_towards(pot);
-    !exec_action(interact);
-    !go_towards(I2);
-    !exec_action(interact);
-    !go_towards(pot);
-    !exec_action(interact);
-    !go_towards(I3);
-    !exec_action(interact);
-    !go_towards(pot);
-    !exec_action(interact);
-    !exec_action(interact);
-    !go_towards(dish);
-    !exec_action(interact);
-    !go_towards(pot);
-    while(player(_,_,_,_,dish)) {
-        .print("tento di prendere la zuppa");
-        !exec_action(interact);
-    }
-    !go_towards(serve);
-    !exec_action(interact);
-    !cook.
 
 /* Piano principale */
 +!go_towards(Object) : reachable(R) & .member(Object, R) & player(StartX, StartY,_,_,_)<-
@@ -304,10 +279,35 @@
             !exec_action(north);
         }
     }
-    ?player(NewX,NewY,_,_,_);
+    .wait(player(NewX,NewY,_,_,_));
     if(NewX == GoalX & NewY == GoalY) {
         !follow_path(Path);
     } else {
         !follow_path([H | Path]);
     }.
      
+
++!cook : order(I1,I2,I3) <- 
+    !go_towards(I1);
+    !exec_action(interact);
+    !go_towards(pot);
+    !exec_action(interact);
+    !go_towards(I2);
+    !exec_action(interact);
+    !go_towards(pot);
+    !exec_action(interact);
+    !go_towards(I3);
+    !exec_action(interact);
+    !go_towards(pot);
+    !exec_action(interact);
+    !exec_action(interact);
+    !go_towards(dish);
+    !exec_action(interact);
+    !go_towards(pot);
+    while(player(_,_,_,_,dish)) {
+        .print("tento di prendere la zuppa");
+        !exec_action(interact);
+    }
+    !go_towards(serve);
+    !exec_action(interact);
+    !cook.
