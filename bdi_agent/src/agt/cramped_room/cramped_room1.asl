@@ -312,7 +312,3 @@
     .abolish(empty(pot));
     
     !cook.
-
-+!cook : true <-
-    
-    !cook.
