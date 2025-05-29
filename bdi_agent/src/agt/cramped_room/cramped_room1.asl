@@ -310,4 +310,9 @@
         !exec_action(wait)
     }
     .abolish(empty(pot));
+    
+    !cook.
+
++!cook : true <-
+    
     !cook.

@@ -49,7 +49,13 @@ task run (type: JavaExec, dependsOn: 'classes') {
     group = 'Jason'
     description 'runs the application'
     mainClass = 'jason.infra.local.RunLocalMAS'
-    args = ['bdi_agent.mas2j']
+    // this needs to be modified to select the right mas2j file
+    
+    // args = ['bdi_agent.mas2j']
+    // args = ['cramped_room.mas2j']
+    // args = ['forced_coordination.mas2j']
+    args = ['marshmellow_experiment.mas2j']
+
 	// options:
 	//     args = ['bdi_agent.mas2j', '--debug', '--no-net', '--empty-mas']
 	//     args = ['bdi_agent.mas2j', '--log-conf', 'l.p'] // to use file l.p to configure logging

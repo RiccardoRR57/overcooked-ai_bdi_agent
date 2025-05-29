@@ -290,6 +290,7 @@
 // Start of the modified part
 
 +!cook : order(I1,I2,I3) <- 
+    !exec_action(north);
     !give(I1);
     !give(I2);
     !give(I3);
@@ -298,7 +299,7 @@
     !give(I3);
     !give(dish);
     !give(dish);
-
+    !exec_action(north);
     !cook.
 
 +!give(Object) : true <-

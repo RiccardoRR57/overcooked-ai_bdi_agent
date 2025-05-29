@@ -209,7 +209,9 @@ public class Env extends Environment {
                 addPercept(agentName, obj);
             }
             addPercept(agentName, grid.getTimestepLiteral());
+            logger.log(Level.INFO, "Environment aggiornato");
         } catch (ParseException e) {
+            logger.log(Level.INFO, "Errore nell'update");
             e.printStackTrace();
         }
     }
