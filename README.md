@@ -79,7 +79,7 @@ For more details, refer to the [Jason documentation](https://jason.sourceforge.n
    args = ['bdi_agent.mas2j']           // Basic environment
    args = ['cramped_room.mas2j']        // Cramped room layout
    args = ['forced_coordination.mas2j'] // Forced coordination layout
-   args = ['marshmellow_experiment.mas2j'] // Marshmallow experiment
+   args = ['asymmetric_advantage.mas2j'] // Asymmetric advantage layout
    ```
 
 3. Run the Jason BDI agent:

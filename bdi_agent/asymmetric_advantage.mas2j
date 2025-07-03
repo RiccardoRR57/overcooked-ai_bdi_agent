@@ -15,8 +15,8 @@ MAS chef {
     environment: Env()
 
     agents: 
-        player0 marshmellow_experiment0;
-        player1 marshmellow_experiment1;
+        player0 asymmetric_advantage0;
+        player1 asymmetric_advantage1;
 
-    aslSourcePath: "src/agt/marshmellow_experiment";
+    aslSourcePath: "src/agt/asymmetric_advantage";
 }

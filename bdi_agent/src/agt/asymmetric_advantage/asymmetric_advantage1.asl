@@ -322,20 +322,18 @@
 
 
 // Start of the modified part
-+!cook : bonus_order(I1,I2,I3) <- 
-    !go_towards(I1);
++!cook : order(I1,I2,I3) <- 
+    
+    !go_towards(dish);
     !exec_action(interact);
-    !go_towards(pot(1));
+    !go_towards(pot(0));
+    while(player(_,_,_,_,dish)) {
+        .print("tento di prendere la zuppa");
+        !exec_action(interact);
+    };
+    !go_towards(serve);
     !exec_action(interact);
-    !go_towards(I2);
-    !exec_action(interact);
-    !go_towards(pot(1));
-    !exec_action(interact);
-    !go_towards(I3);
-    !exec_action(interact);
-    !go_towards(pot(1));
-    !exec_action(interact);
-    !exec_action(interact);
+
     !go_towards(dish);
     !exec_action(interact);
     !go_towards(pot(1));

@@ -27,6 +27,9 @@ public class Env extends Environment {
     private final ArrayBlockingQueue<Integer> actionQueue0 = new ArrayBlockingQueue<>(1);
     private final ArrayBlockingQueue<Integer> actionQueue1 = new ArrayBlockingQueue<>(1);
 
+    private int waitTime0;
+    private int waitTime1;
+
     /**
      * Called before the MAS execution with the args informed in .mas2j
      * Initializes the environment and starts the Python-Java gateway server
@@ -38,6 +41,8 @@ public class Env extends Environment {
         super.init(args);
         server = new GatewayServer(this);
         server.start();
+        waitTime0 = 0;
+        waitTime1 = 0;
     }
 
     /**
@@ -82,6 +87,13 @@ public class Env extends Environment {
             Thread.currentThread().interrupt();  // Restore interrupted status
             return false;
         }
+        if(actionName.equals("wait")) {
+            if (agName.equals("player0")) {
+                waitTime0++;
+            } else {
+                waitTime1++;
+            }
+        }
         return true; // the action was executed with success
     }
 
@@ -108,6 +120,7 @@ public class Env extends Environment {
         updatePercepts(1);
 
         informAgsEnvironmentChanged();  // Inform agents of environment change
+        logger.log(Level.INFO, "Wait time - player0: " + waitTime0 + ", player1: " + waitTime1);
     }
 
     /**

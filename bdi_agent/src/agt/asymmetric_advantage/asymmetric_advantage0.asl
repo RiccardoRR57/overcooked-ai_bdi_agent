@@ -327,24 +327,41 @@
     !go_towards(I1);
     !exec_action(interact);
     !go_towards(pot(0));
-    !exec_action(interact);
+    while(player(_,_,_,_,onion)) {
+        !exec_action(interact);
+    };
     !go_towards(I2);
     !exec_action(interact);
     !go_towards(pot(0));
-    !exec_action(interact);
+    while(player(_,_,_,_,onion)) {
+        !exec_action(interact);
+    };
     !go_towards(I3);
     !exec_action(interact);
     !go_towards(pot(0));
-    !exec_action(interact);
-    !exec_action(interact);
-    !go_towards(dish);
-    !exec_action(interact);
-    !go_towards(pot(0));
-    while(player(_,_,_,_,dish)) {
-        .print("tento di prendere la zuppa");
+    while(player(_,_,_,_,onion)) {
         !exec_action(interact);
     };
     !exec_action(interact);
-    !go_towards(serve);
+
+    !go_towards(I1);
     !exec_action(interact);
+    !go_towards(pot(1));
+    while(player(_,_,_,_,onion)) {
+        !exec_action(interact);
+    };
+    !go_towards(I2);
+    !exec_action(interact);
+    !go_towards(pot(1));
+    while(player(_,_,_,_,onion)) {
+        !exec_action(interact);
+    };
+    !go_towards(I3);
+    !exec_action(interact);
+    !go_towards(pot(1));
+    while(player(_,_,_,_,onion)) {
+        !exec_action(interact);
+    };
+    !exec_action(interact);
+
     !cook.
